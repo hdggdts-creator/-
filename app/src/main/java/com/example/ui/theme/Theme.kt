@@ -2,6 +2,7 @@ package com.example.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -27,14 +28,37 @@ private val DarkColorScheme = darkColorScheme(
     onError = Color.White
 )
 
+private val LightColorScheme = lightColorScheme(
+    primary = TrophyGoldDark,
+    onPrimary = Color.White,
+    primaryContainer = TrophyGoldBright,
+    onPrimaryContainer = ArenaLightTextPrimary,
+    secondary = PitchGreen,
+    onSecondary = Color.White,
+    secondaryContainer = PitchGreenBright.copy(alpha = 0.2f),
+    onSecondaryContainer = PitchGreenDark,
+    tertiary = NeonCyan,
+    onTertiary = Color.White,
+    background = ArenaLightBg,
+    onBackground = ArenaLightTextPrimary,
+    surface = ArenaLightCard,
+    onSurface = ArenaLightTextPrimary,
+    surfaceVariant = ArenaLightCardHover,
+    onSurfaceVariant = ArenaLightTextSecondary,
+    outline = ArenaLightBorder,
+    error = BuzzerRed,
+    onError = Color.White
+)
+
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = true, // Stadium Game Show is best in dark mode
-    dynamicColor: Boolean = false,
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = colorScheme,
         typography = Typography,
         content = content
     )

@@ -2,12 +2,22 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Stadium Night & Pitch Palette
+// Stadium Dark Palette
 val StadiumDark = Color(0xFF070E17)
 val StadiumCard = Color(0xFF0F1E2A)
 val StadiumCardHover = Color(0xFF162B3B)
 val StadiumBorder = Color(0xFF1E384D)
 
+// Arena Light Palette
+val ArenaLightBg = Color(0xFFF1F5F9)
+val ArenaLightCard = Color(0xFFFFFFFF)
+val ArenaLightCardHover = Color(0xFFE2E8F0)
+val ArenaLightBorder = Color(0xFFCBD5E1)
+val ArenaLightTextPrimary = Color(0xFF0F172A)
+val ArenaLightTextSecondary = Color(0xFF334155)
+val ArenaLightTextMuted = Color(0xFF64748B)
+
+// Shared Vibrant Football Accents
 val PitchGreenDark = Color(0xFF063A24)
 val PitchGreen = Color(0xFF10B981)
 val PitchGreenBright = Color(0xFF34D399)

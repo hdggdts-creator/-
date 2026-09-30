@@ -31,7 +31,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            val uiState by viewModel.uiState.collectAsState()
+            MyApplicationTheme(darkTheme = uiState.isDarkTheme) {
                 // Ensure RTL layout for Arabic
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -72,8 +73,13 @@ fun QuizApp(
         when (screen) {
             Screen.HOME -> {
                 HomeScreen(
-                    onSelectEpisode = { episode, twoPlayerMode ->
-                        viewModel.startEpisode(episode, twoPlayerMode)
+                    isDarkTheme = uiState.isDarkTheme,
+                    onToggleTheme = { viewModel.toggleTheme() },
+                    onSelectEpisode = { episodeId, twoPlayerMode ->
+                        viewModel.startEpisodeWithAntiRepetition(episodeId, twoPlayerMode)
+                    },
+                    onSelectRandom = { twoPlayerMode ->
+                        viewModel.startRandomMatch(twoPlayerMode)
                     }
                 )
             }

@@ -35,4 +35,33 @@ class QuizLogicUnitTest {
             assertTrue("Auction round should have valid answers", ep.auction.validAnswers.isNotEmpty())
         }
     }
+
+    @Test
+    fun testEpisodePacksHave5VariantsEach() {
+        val packs = QuizDataProvider.episodePacks
+        assertEquals("Should have 5 episode packs", 5, packs.size)
+
+        for (pack in packs) {
+            assertEquals("Each pack should have exactly 5 variants", 5, pack.variants.size)
+            for (v in pack.variants) {
+                assertEquals(4, v.whoAmI.hints.size)
+                assertTrue(v.careerPath.clubs.size >= 3)
+                assertEquals(11, v.lineup.players.size)
+                assertEquals(1, v.lineup.players.count { it.isMystery })
+                assertEquals(5, v.speed.questions.size)
+                assertTrue(v.auction.validAnswers.isNotEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun testAntiRepetitionAlgorithm() {
+        val epId = "ep_1"
+        val history = listOf(0, 1, 2)
+        val freshEpisode = QuizDataProvider.getEpisodeWithAntiRepetition(epId, history)
+        assertTrue(
+            "Selected variant index should not be in recently played",
+            freshEpisode.variantIndex !in history
+        )
+    }
 }

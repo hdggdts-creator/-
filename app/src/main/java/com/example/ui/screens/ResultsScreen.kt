@@ -54,7 +54,7 @@ fun ResultsScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(StadiumDark)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
             .testTag("results_screen"),
         contentPadding = PaddingValues(top = 20.dp, bottom = 32.dp),
@@ -324,7 +324,7 @@ fun ResultsScreen(
                 // Play another random match
                 Button(
                     onClick = {
-                        viewModel.startEpisode(QuizDataProvider.getRandomEpisode(), uiState.isTwoPlayerMode)
+                        viewModel.startRandomMatch(uiState.isTwoPlayerMode)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -346,10 +346,10 @@ fun ResultsScreen(
                     )
                 }
 
-                // Replay same episode
+                // Replay same episode with fresh non-repeating variant
                 OutlinedButton(
                     onClick = {
-                        viewModel.startEpisode(uiState.selectedEpisode, uiState.isTwoPlayerMode)
+                        viewModel.startEpisodeWithAntiRepetition(uiState.selectedEpisode.id, uiState.isTwoPlayerMode)
                     },
                     modifier = Modifier
                         .fillMaxWidth()

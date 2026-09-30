@@ -70,6 +70,15 @@ data class SpeedRound(
     val questions: List<SpeedItem>
 )
 
+data class EpisodeVariant(
+    val variantIndex: Int,
+    val whoAmI: PlayerHintRound,
+    val careerPath: CareerPathRound,
+    val lineup: LineupRound,
+    val auction: AuctionRound,
+    val speed: SpeedRound
+)
+
 data class QuizEpisode(
     val id: String,
     val title: String,
@@ -77,12 +86,42 @@ data class QuizEpisode(
     val era: String,
     val difficulty: String,
     val iconEmoji: String,
+    val variantIndex: Int = 0,
     val whoAmI: PlayerHintRound,
     val careerPath: CareerPathRound,
     val lineup: LineupRound,
     val auction: AuctionRound,
     val speed: SpeedRound
 )
+
+data class EpisodePack(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val era: String,
+    val difficulty: String,
+    val iconEmoji: String,
+    val variants: List<EpisodeVariant>
+) {
+    fun toQuizEpisode(index: Int): QuizEpisode {
+        val safeIdx = if (index in variants.indices) index else 0
+        val v = variants[safeIdx]
+        return QuizEpisode(
+            id = id,
+            title = title,
+            subtitle = subtitle,
+            era = era,
+            difficulty = difficulty,
+            iconEmoji = iconEmoji,
+            variantIndex = safeIdx,
+            whoAmI = v.whoAmI,
+            careerPath = v.careerPath,
+            lineup = v.lineup,
+            auction = v.auction,
+            speed = v.speed
+        )
+    }
+}
 
 enum class GameRound(val roundNumber: Int, val titleAr: String, val maxScore: Int) {
     ROUND_1_WHO_AM_I(1, "فقرة من أنا؟", 10),

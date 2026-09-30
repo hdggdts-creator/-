@@ -59,14 +59,14 @@ fun GameScreen(
                     Text("متابعة اللعب", color = TrophyGoldBright)
                 }
             },
-            containerColor = StadiumCard
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(StadiumDark)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .testTag("game_screen")
     ) {

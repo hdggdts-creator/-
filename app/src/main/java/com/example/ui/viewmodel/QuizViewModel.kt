@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.audio.SoundManager
 import com.example.data.model.*
+import com.example.data.preferences.AppPreferences
 import com.example.data.repository.QuizDataProvider
 import com.example.ui.components.HostMood
 import com.example.util.ArabicTextNormalizer
@@ -21,6 +22,9 @@ data class QuizUiState(
     val totalScore: Int = 0,
     val roundScores: Map<GameRound, Int> = emptyMap(),
     val roundResults: List<RoundResult> = emptyList(),
+
+    // Theme (Dark / Light)
+    val isDarkTheme: Boolean = true,
 
     // Presenter state
     val hostSpeech: String = "أهلاً بكم في تحدي الـ 30 كروي! استعد لمعركة العقول الكروية!",
@@ -73,16 +77,40 @@ enum class Screen {
 class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
     val soundManager = SoundManager(application)
+    val appPreferences = AppPreferences(application)
 
     private val _uiState = MutableStateFlow(QuizUiState())
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
 
     init {
+        // Load persisted dark theme preference
+        _uiState.update { it.copy(isDarkTheme = appPreferences.isDarkTheme) }
         // Greet user on launch
         greetForCurrentRound()
     }
 
+    fun toggleTheme() {
+        val next = !_uiState.value.isDarkTheme
+        appPreferences.isDarkTheme = next
+        _uiState.update { it.copy(isDarkTheme = next) }
+    }
+
+    fun startEpisodeWithAntiRepetition(episodeId: String, twoPlayerMode: Boolean = false) {
+        val history = appPreferences.getRecentlyPlayedVariants(episodeId)
+        val freshEpisode = QuizDataProvider.getEpisodeWithAntiRepetition(episodeId, history)
+        startEpisode(freshEpisode, twoPlayerMode)
+    }
+
+    fun startRandomMatch(twoPlayerMode: Boolean = false) {
+        val historyMap = QuizDataProvider.episodePacks.associate { it.id to appPreferences.getRecentlyPlayedVariants(it.id) }
+        val freshEpisode = QuizDataProvider.getRandomEpisodeWithAntiRepetition(historyMap)
+        startEpisode(freshEpisode, twoPlayerMode)
+    }
+
     fun startEpisode(episode: QuizEpisode, twoPlayerMode: Boolean = false) {
+        // Record this variant in history to prevent repetition
+        appPreferences.recordPlayedVariant(episode.id, episode.variantIndex)
+
         _uiState.update {
             it.copy(
                 selectedEpisode = episode,
