@@ -3,8 +3,6 @@ name: Android Build
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -19,7 +17,9 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
+
+    - name: Generate missing Gradle Wrapper
+      run: gradle wrapper
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
