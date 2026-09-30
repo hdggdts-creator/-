@@ -372,7 +372,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "5 مجموعات أسئلة متجددة بدون تكرار في كل حلقة",
+                        text = "10 نسخ متجددة ومحمية ضد التكرار في كل حلقة",
                         style = MaterialTheme.typography.labelSmall,
                         color = PitchGreenBright
                     )
@@ -382,7 +382,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = "${QuizDataProvider.episodePacks.size} حلقات • 25 تحدي",
+                        text = "${QuizDataProvider.episodePacks.size} حلقات • 50 تحدياً كروياً",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -492,7 +492,7 @@ fun HomeScreen(
                     Text("• الجولة 4: 'تحدي المزاد' (10 نقاط) - ذكر عدة أسماء تطابق الشرط (كل اسم صحيح بنقطتين).", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Text("• الجولة 5: 'أسئلة السرعة' (10 نقاط) - 5 معلومات سريعة للإجابة بـ صح أو خطأ.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("✨ ميزة منع التكرار: كل حلقة تحتوي على 5 مجموعات أسئلة مختلفة تماماً يتم اختيارها عشوائياً بدون تكرار!", color = PitchGreenBright, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text("✨ ميزة منع التكرار: كل حلقة تحتوي على 10 مجموعات أسئلة مختلفة تماماً يتم اختيارها عشوائياً بدون تكرار حتى استهلاك كامل المجموعات!", color = PitchGreenBright, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             },
             confirmButton = {

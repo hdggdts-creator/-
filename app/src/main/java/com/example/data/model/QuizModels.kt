@@ -29,14 +29,17 @@ data class PitchPlayer(
 data class LineupRound(
     val id: String,
     val matchTitle: String,
-    val teamName: String,
-    val year: String,
-    val formation: String,
-    val players: List<PitchPlayer>,
+    val teamName: String = "",
+    val year: String = "",
+    val formation: String = "",
+    val players: List<PitchPlayer> = emptyList(),
     val mysteryPlayerName: String,
-    val alternativeNames: List<String>,
+    val alternativeNames: List<String> = emptyList(),
     val clueText: String = "",
-    val triviaFact: String
+    val triviaFact: String = "",
+    val position: String = "",
+    val kitNumber: String = "",
+    val historicalContext: String = ""
 )
 
 data class CareerPathRound(
@@ -53,8 +56,11 @@ data class AuctionRound(
     val id: String,
     val challengePrompt: String,
     val targetCount: Int = 5,
-    val validAnswers: List<String>,
-    val triviaFact: String
+    val validAnswers: List<String> = emptyList(),
+    val triviaFact: String = "تحدي المزاد في عالم الساحرة المستديرة",
+    val requiredCount: Int = 5,
+    val acceptableAnswers: List<String> = emptyList(),
+    val canonicalDisplayList: List<String> = emptyList()
 )
 
 data class SpeedItem(
@@ -62,7 +68,21 @@ data class SpeedItem(
     val statement: String,
     val isTrue: Boolean,
     val explanation: String
-)
+) {
+    constructor(
+        number: Int,
+        statement: String,
+        isTrue: Boolean,
+        explanation: String
+    ) : this(
+        id = number.toString(),
+        statement = statement,
+        isTrue = isTrue,
+        explanation = explanation
+    )
+}
+
+typealias SpeedQuestion = SpeedItem
 
 data class SpeedRound(
     val id: String,
@@ -76,8 +96,10 @@ data class EpisodeVariant(
     val careerPath: CareerPathRound,
     val lineup: LineupRound,
     val auction: AuctionRound,
-    val speed: SpeedRound
-)
+    val speedRound: SpeedRound
+) {
+    val speed: SpeedRound get() = speedRound
+}
 
 data class QuizEpisode(
     val id: String,

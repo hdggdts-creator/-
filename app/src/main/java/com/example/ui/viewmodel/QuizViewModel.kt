@@ -104,30 +104,30 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startEpisodeWithAntiRepetition(episodeId: String, twoPlayerMode: Boolean = _uiState.value.isTwoPlayerMode) {
-        val history = appPreferences.getRecentlyPlayedVariants(episodeId)
-        val freshEpisode = QuizDataProvider.getEpisodeWithAntiRepetition(episodeId, history)
-        startEpisode(freshEpisode, twoPlayerMode)
+        val played = appPreferences.getPlayedVariants(episodeId)
+        val neededCount = if (twoPlayerMode) 2 else 1
+        val selectedEpisodes = QuizDataProvider.getDistinctVariantsForEpisode(episodeId, played, count = neededCount)
+
+        val p1Episode = selectedEpisodes[0]
+        val p2Episode = if (twoPlayerMode && selectedEpisodes.size > 1) selectedEpisodes[1] else p1Episode
+
+        // Record both as played in AppPreferences
+        val indicesToRecord = selectedEpisodes.map { it.variantIndex }
+        appPreferences.recordPlayedVariants(episodeId, indicesToRecord, totalAvailable = 10)
+
+        startEpisodeWithPrepared(p1Episode, p2Episode, twoPlayerMode)
     }
 
     fun startRandomMatch(twoPlayerMode: Boolean = _uiState.value.isTwoPlayerMode) {
-        val historyMap = QuizDataProvider.episodePacks.associate { it.id to appPreferences.getRecentlyPlayedVariants(it.id) }
-        val freshEpisode = QuizDataProvider.getRandomEpisodeWithAntiRepetition(historyMap)
-        startEpisode(freshEpisode, twoPlayerMode)
+        val randomPack = QuizDataProvider.episodePacks.random()
+        startEpisodeWithAntiRepetition(randomPack.id, twoPlayerMode)
     }
 
     fun startEpisode(episode: QuizEpisode, twoPlayerMode: Boolean = false) {
-        // Record this variant in history to prevent repetition
-        appPreferences.recordPlayedVariant(episode.id, episode.variantIndex)
+        startEpisodeWithAntiRepetition(episode.id, twoPlayerMode)
+    }
 
-        val p1Episode = episode
-        val p2Episode = if (twoPlayerMode) {
-            val pack = QuizDataProvider.episodePacks.find { it.id == episode.id } ?: QuizDataProvider.episodePacks[0]
-            val p2Idx = (episode.variantIndex + 1) % pack.variants.size
-            pack.toQuizEpisode(p2Idx)
-        } else {
-            episode
-        }
-
+    private fun startEpisodeWithPrepared(p1Episode: QuizEpisode, p2Episode: QuizEpisode, twoPlayerMode: Boolean) {
         _uiState.update {
             it.copy(
                 selectedEpisode = p1Episode,
@@ -564,17 +564,20 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        val isValid = ArabicTextNormalizer.matchesAny(input, auction.validAnswers)
+        val answersPool = if (auction.validAnswers.isNotEmpty()) auction.validAnswers else auction.acceptableAnswers
+        val isValid = ArabicTextNormalizer.matchesAny(input, answersPool)
+
+        val targetGoal = if (auction.targetCount > 0) auction.targetCount else auction.requiredCount
 
         if (isValid) {
             soundManager.playCorrect()
             val newEntries = state.round4AcceptedEntries + input
-            val isCompleted = newEntries.size >= auction.targetCount
+            val isCompleted = newEntries.size >= targetGoal
 
             if (isCompleted) {
                 finishAuction(newEntries)
             } else {
-                val remaining = auction.targetCount - newEntries.size
+                val remaining = targetGoal - newEntries.size
                 val speech = "اسم صحيح 100%! متبقي $remaining أسماء لتكتمل العلامة الكاملة!"
                 soundManager.speak(speech)
                 _uiState.update {

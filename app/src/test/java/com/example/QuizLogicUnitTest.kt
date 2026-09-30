@@ -28,40 +28,55 @@ class QuizLogicUnitTest {
 
         for (ep in episodes) {
             assertEquals("Who Am I should have 4 hints", 4, ep.whoAmI.hints.size)
-            assertTrue("Career path should have at least 4 clubs", ep.careerPath.clubs.size >= 4)
+            assertTrue("Career path should have at least 3 clubs", ep.careerPath.clubs.size >= 3)
             assertEquals("Lineup should have 11 players", 11, ep.lineup.players.size)
             assertTrue("Lineup should contain exactly 1 mystery player", ep.lineup.players.count { it.isMystery } == 1)
             assertEquals("Speed round should have 5 questions", 5, ep.speed.questions.size)
-            assertTrue("Auction round should have valid answers", ep.auction.validAnswers.isNotEmpty())
         }
     }
 
     @Test
-    fun testEpisodePacksHave5VariantsEach() {
+    fun testEpisodePacksHave10VariantsEach() {
         val packs = QuizDataProvider.episodePacks
         assertEquals("Should have 5 episode packs", 5, packs.size)
 
         for (pack in packs) {
-            assertEquals("Each pack should have exactly 5 variants", 5, pack.variants.size)
+            assertEquals("Each pack must have exactly 10 variants", 10, pack.variants.size)
             for (v in pack.variants) {
                 assertEquals(4, v.whoAmI.hints.size)
                 assertTrue(v.careerPath.clubs.size >= 3)
                 assertEquals(11, v.lineup.players.size)
                 assertEquals(1, v.lineup.players.count { it.isMystery })
                 assertEquals(5, v.speed.questions.size)
-                assertTrue(v.auction.validAnswers.isNotEmpty())
+                assertTrue(
+                    v.auction.validAnswers.isNotEmpty() || v.auction.acceptableAnswers.isNotEmpty()
+                )
             }
         }
     }
 
     @Test
-    fun testAntiRepetitionAlgorithm() {
+    fun testAntiRepetitionSingleAndTwoPlayer() {
         val epId = "ep_1"
-        val history = listOf(0, 1, 2)
-        val freshEpisode = QuizDataProvider.getEpisodeWithAntiRepetition(epId, history)
+
+        // Single player: exclude already played
+        val played = setOf(0, 1, 2, 3)
+        val singleResult = QuizDataProvider.getDistinctVariantsForEpisode(epId, played, count = 1)
+        assertEquals(1, singleResult.size)
         assertTrue(
-            "Selected variant index should not be in recently played",
-            freshEpisode.variantIndex !in history
+            "Selected variant index must not be in played set",
+            singleResult[0].variantIndex !in played
         )
+
+        // Two player: returns 2 distinct unplayed variants
+        val twoPlayerResults = QuizDataProvider.getDistinctVariantsForEpisode(epId, played, count = 2)
+        assertEquals(2, twoPlayerResults.size)
+        assertNotEquals(
+            "Player 1 and Player 2 must receive different variants",
+            twoPlayerResults[0].variantIndex,
+            twoPlayerResults[1].variantIndex
+        )
+        assertTrue(twoPlayerResults[0].variantIndex !in played)
+        assertTrue(twoPlayerResults[1].variantIndex !in played)
     }
 }

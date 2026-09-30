@@ -57,31 +57,48 @@ object QuizDataProvider {
     val episodes: List<QuizEpisode> = episodePacks.map { it.toQuizEpisode(0) }
 
     /**
-     * Anti-Repetition algorithm:
-     * Selects a variant of the given episode that the user has NOT played recently.
+     * Anti-Repetition logic:
+     * Selects [count] distinct variants for an episode from available unused variants.
+     * When fewer than [count] variants remain unused in the 10-pack,
+     * it gracefully pulls from the remaining pool (avoiding intra-session duplicates).
      */
-    fun getEpisodeWithAntiRepetition(episodeId: String, recentlyPlayed: List<Int>): QuizEpisode {
+    fun getDistinctVariantsForEpisode(
+        episodeId: String,
+        playedIndices: Set<Int>,
+        count: Int = 1
+    ): List<QuizEpisode> {
         val pack = episodePacks.find { it.id == episodeId } ?: episodePacks[0]
-        val totalVariants = pack.variants.size
+        val totalVariants = pack.variants.size // 10
 
-        // Find available variant indices not in recently played
-        val available = (0 until totalVariants).filter { it !in recentlyPlayed }
+        val available = (0 until totalVariants).filter { it !in playedIndices }.shuffled().toMutableList()
+        val chosenIndices = mutableListOf<Int>()
 
-        val selectedIndex = if (available.isNotEmpty()) {
-            available.random()
-        } else {
-            // If all 5 variants have been seen, pick the least recently played
-            val candidate = (0 until totalVariants).minByOrNull { idx ->
-                val pos = recentlyPlayed.indexOf(idx)
-                if (pos == -1) 0 else pos
-            } ?: Random.nextInt(totalVariants)
-            candidate
+        // Take from available
+        while (chosenIndices.size < count && available.isNotEmpty()) {
+            chosenIndices.add(available.removeAt(0))
         }
 
-        return pack.toQuizEpisode(selectedIndex)
+        // If we still need more (e.g. pool had only 1 left and we need 2 for two-player),
+        // take from the remaining pool (excluding already chosen in this call)
+        if (chosenIndices.size < count) {
+            val remainingPool = (0 until totalVariants).filter { it !in chosenIndices }.shuffled()
+            for (idx in remainingPool) {
+                chosenIndices.add(idx)
+                if (chosenIndices.size == count) break
+            }
+        }
+
+        return chosenIndices.map { pack.toQuizEpisode(it) }
     }
 
-    fun getRandomEpisodeWithAntiRepetition(recentlyPlayedMap: Map<String, List<Int>>): QuizEpisode {
+    /**
+     * Selects a single variant of the given episode that the user has NOT played recently.
+     */
+    fun getEpisodeWithAntiRepetition(episodeId: String, recentlyPlayed: Collection<Int>): QuizEpisode {
+        return getDistinctVariantsForEpisode(episodeId, recentlyPlayed.toSet(), count = 1).first()
+    }
+
+    fun getRandomEpisodeWithAntiRepetition(recentlyPlayedMap: Map<String, Collection<Int>>): QuizEpisode {
         val randomPack = episodePacks.random()
         val history = recentlyPlayedMap[randomPack.id] ?: emptyList()
         return getEpisodeWithAntiRepetition(randomPack.id, history)
