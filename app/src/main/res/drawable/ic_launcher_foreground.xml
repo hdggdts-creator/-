@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer Glow / Shield Halo -->
+    <path
+        android:fillColor="#33FFD700"
+        android:pathData="M54,23 L76,32 L76,60 C76,73 54,85 54,85 C54,85 32,73 32,60 L32,32 Z" />
+
+    <!-- Gold Crest / Shield -->
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2.5"
+        android:pathData="M54,26 L73,34 L73,59 C73,70 54,81 54,81 C54,81 35,70 35,59 L35,34 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="26"
+                android:endX="54"
+                android:endY="81"
+                android:type="linear">
+                <item android:color="#1A2D23" android:offset="0.0" />
+                <item android:color="#0F172A" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Football Soccer Ball Elements (Centered) -->
+    <!-- Ball circle base -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M54,54 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0" />
+
+    <!-- Ball Pentagons (Classic Black/Dark Emerald) -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M54,48 L58,51 L56,56 L52,56 L50,51 Z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M54,38 L51,41 L47,40 L45,43 L40,41 L43,47 L41,52 L38,54 L41,56 L43,62 L40,67 L45,65 L48,68 L51,67 L54,70 L57,67 L60,68 L63,65 L68,67 L65,62 L67,56 L70,54 L67,52 L65,47 L68,41 L63,43 L61,40 L57,41 Z"
+        android:fillAlpha="0.15" />
+    <!-- Seam lines to outer rim -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="1.2"
+        android:pathData="M54,48 L54,38 M58,51 L67,47 M56,56 L63,65 M52,56 L45,65 M50,51 L41,47" />
+
+    <!-- Number 30 Golden Badge Banner at Base -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M43,62 L65,62 L62,71 L46,71 Z" />
+    <!-- 3 -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M48,64 C50,64 51.5,64.8 51.5,66.2 C51.5,67.2 50.5,67.6 49,67.6 M51.5,66.2 C52,66.8 52,68.5 50.5,69.5 C49.5,70.2 48,70 48,70" />
+    <!-- 0 -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M56.5,64.5 C58.5,64.5 59.5,65.7 59.5,67.2 C59.5,68.7 58.5,69.8 56.5,69.8 C54.5,69.8 53.5,68.7 53.5,67.2 C53.5,65.7 54.5,64.5 56.5,64.5 Z" />
+
+    <!-- Golden Stars on top of the crest -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,20 L55.5,23.5 L59,24 L56.5,26.5 L57,30 L54,28.2 L51,30 L51.5,26.5 L49,24 L52.5,23.5 Z" />
+</vector>

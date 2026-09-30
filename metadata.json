@@ -1,0 +1,6 @@
+{
+  "name": "تحدي الـ 30 كروي",
+  "description": "برنامج ولعبة مسابقات كروية تفاعلية بأسلوب تحدي الثلاثين مع 5 جولات وتحدي المزاد والتشكيلة الناقصة ومقدم حماسي",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
