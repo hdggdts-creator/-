@@ -134,6 +134,7 @@ enum class GameRound(val roundNumber: Int, val titleAr: String, val maxScore: In
 
 data class RoundResult(
     val round: GameRound,
+    val playerNumber: Int = 1,
     val scoreEarned: Int,
     val maxScore: Int = 10,
     val isSuccess: Boolean,

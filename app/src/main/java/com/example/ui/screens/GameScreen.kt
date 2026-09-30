@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,6 +28,40 @@ import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.QuizUiState
 import com.example.ui.viewmodel.QuizViewModel
+
+fun getNextButtonTitle(uiState: QuizUiState, defaultNextTitle: String): String {
+    if (!uiState.isTwoPlayerMode) return defaultNextTitle
+    return if (uiState.activePlayerNumber == 1) {
+        "تسليم الدور للاعب الثاني 🔴 (الجولة ${uiState.currentRound.roundNumber})"
+    } else {
+        if (uiState.currentRound == GameRound.ROUND_5_SPEED) {
+            "عرض النتيجة وتتويج الفائز 🏆"
+        } else {
+            "الانتقال للجولة ${uiState.currentRound.roundNumber + 1} ➡️ (دور اللاعب الأول 🔵)"
+        }
+    }
+}
+
+@Composable
+fun PlayerTurnHeaderBadge(activePlayerNumber: Int, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (activePlayerNumber == 1) Player1Color else Player2Color,
+        modifier = modifier.padding(bottom = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (activePlayerNumber == 1) "دور اللاعب الأول 🔵" else "دور اللاعب الثاني 🔴",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}
 
 @Composable
 fun GameScreen(
@@ -70,10 +105,14 @@ fun GameScreen(
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .testTag("game_screen")
     ) {
-        // Scoreboard Header
+        // Scoreboard Header with Two-Player turn & score support
         ScoreboardHeader(
             currentRound = uiState.currentRound,
             currentScore = uiState.totalScore,
+            isTwoPlayerMode = uiState.isTwoPlayerMode,
+            activePlayerNumber = uiState.activePlayerNumber,
+            player1Score = uiState.player1Score,
+            player2Score = uiState.player2Score,
             isSoundEnabled = uiState.isSoundEnabled,
             onToggleSound = { viewModel.toggleSound() },
             onBackClick = { showExitDialog = true }
@@ -115,7 +154,7 @@ fun GameScreen(
                     Round5Content(uiState = uiState, viewModel = viewModel)
                 }
                 GameRound.RESULTS -> {
-                    // Results will switch screen
+                    // Handled by Screen.RESULTS
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -143,9 +182,19 @@ fun Round1Content(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = StadiumCard)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                brush = SolidColor(
+                    if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color)
+                    else MaterialTheme.colorScheme.outline
+                )
+            )
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
+                if (uiState.isTwoPlayerMode) {
+                    PlayerTurnHeaderBadge(activePlayerNumber = uiState.activePlayerNumber)
+                }
+
                 Text(
                     text = "من هو هذا اللاعب؟ 🤔",
                     style = MaterialTheme.typography.titleSmall,
@@ -163,10 +212,10 @@ fun Round1Content(
                         .testTag("round1_input"),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TrophyGoldBright,
-                        unfocusedBorderColor = StadiumBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color) else TrophyGoldBright,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -196,7 +245,7 @@ fun Round1Content(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
                         border = ButtonDefaults.outlinedButtonBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(PitchGreenBright)
+                            brush = SolidColor(PitchGreenBright)
                         )
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = PitchGreenBright)
@@ -218,14 +267,23 @@ fun Round1Content(
             }
         }
     } else {
-        // Revealed Player Card
+        val earnedScore = if (uiState.isTwoPlayerMode) {
+            (if (uiState.activePlayerNumber == 1) uiState.player1RoundScores else uiState.player2RoundScores)[GameRound.ROUND_1_WHO_AM_I] ?: 0
+        } else {
+            uiState.roundScores[GameRound.ROUND_1_WHO_AM_I] ?: 0
+        }
+
+        val playerPrefix = if (uiState.isTwoPlayerMode) {
+            if (uiState.activePlayerNumber == 1) "اللاعب الأول 🔵: " else "اللاعب الثاني 🔴: "
+        } else ""
+
         RoundSuccessCard(
-            title = "اللاعب هو: ${whoAmI.playerName} ${whoAmI.nationalityEmoji}",
+            title = "${playerPrefix}اللاعب هو: ${whoAmI.playerName} ${whoAmI.nationalityEmoji}",
             subtitle = "${whoAmI.position} • كُشف بعد ${uiState.unlockedHintsCount} تلميحات",
-            scoreEarned = uiState.roundScores[GameRound.ROUND_1_WHO_AM_I] ?: 0,
+            scoreEarned = earnedScore,
             triviaFact = whoAmI.triviaFact,
             onNextClick = { viewModel.nextRound() },
-            nextRoundTitle = "الجولة الثانية: الرابط العجيب ⏱️"
+            nextRoundTitle = getNextButtonTitle(uiState, "الجولة الثانية: الرابط العجيب ⏱️")
         )
     }
 }
@@ -249,9 +307,19 @@ fun Round2Content(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = StadiumCard)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                brush = SolidColor(
+                    if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color)
+                    else MaterialTheme.colorScheme.outline
+                )
+            )
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
+                if (uiState.isTwoPlayerMode) {
+                    PlayerTurnHeaderBadge(activePlayerNumber = uiState.activePlayerNumber)
+                }
+
                 Text(
                     text = "من هو اللاعب صاحب هذه المسيرة الكروية؟ ⚽",
                     style = MaterialTheme.typography.titleSmall,
@@ -269,10 +337,10 @@ fun Round2Content(
                         .testTag("round2_input"),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TrophyGoldBright,
-                        unfocusedBorderColor = StadiumBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color) else TrophyGoldBright,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -302,7 +370,7 @@ fun Round2Content(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
                         border = ButtonDefaults.outlinedButtonBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(PitchGreenBright)
+                            brush = SolidColor(PitchGreenBright)
                         )
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = PitchGreenBright)
@@ -324,13 +392,23 @@ fun Round2Content(
             }
         }
     } else {
+        val earnedScore = if (uiState.isTwoPlayerMode) {
+            (if (uiState.activePlayerNumber == 1) uiState.player1RoundScores else uiState.player2RoundScores)[GameRound.ROUND_2_CAREER] ?: 0
+        } else {
+            uiState.roundScores[GameRound.ROUND_2_CAREER] ?: 0
+        }
+
+        val playerPrefix = if (uiState.isTwoPlayerMode) {
+            if (uiState.activePlayerNumber == 1) "اللاعب الأول 🔵: " else "اللاعب الثاني 🔴: "
+        } else ""
+
         RoundSuccessCard(
-            title = "صاحب المسيرة: ${career.playerName}",
+            title = "${playerPrefix}صاحب المسيرة: ${career.playerName}",
             subtitle = "أندية: ${career.clubs.joinToString(" ⬅️ ") { it.clubName }}",
-            scoreEarned = uiState.roundScores[GameRound.ROUND_2_CAREER] ?: 0,
+            scoreEarned = earnedScore,
             triviaFact = career.triviaFact,
             onNextClick = { viewModel.nextRound() },
-            nextRoundTitle = "الجولة الثالثة: التشكيلة الناقصة 📋"
+            nextRoundTitle = getNextButtonTitle(uiState, "الجولة الثالثة: التشكيلة الناقصة 📋")
         )
     }
 }
@@ -349,7 +427,7 @@ fun Round3Content(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = StadiumCard)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
@@ -368,12 +446,12 @@ fun Round3Content(
                 Text(
                     text = "${lineup.teamName} • ${lineup.year}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = StadiumDark
+                color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Text(
                     text = lineup.formation,
@@ -395,9 +473,9 @@ fun Round3Content(
     if (lineup.clueText.isNotBlank()) {
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = StadiumCard,
+            color = MaterialTheme.colorScheme.surface,
             border = CardDefaults.outlinedCardBorder().copy(
-                brush = androidx.compose.ui.graphics.SolidColor(StadiumBorder)
+                brush = SolidColor(MaterialTheme.colorScheme.outline)
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -420,9 +498,19 @@ fun Round3Content(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = StadiumCard)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                brush = SolidColor(
+                    if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color)
+                    else MaterialTheme.colorScheme.outline
+                )
+            )
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
+                if (uiState.isTwoPlayerMode) {
+                    PlayerTurnHeaderBadge(activePlayerNumber = uiState.activePlayerNumber)
+                }
+
                 Text(
                     text = "من هو اللاعب المجهول ❓ في هذه التشكيلة التاريخية؟",
                     style = MaterialTheme.typography.titleSmall,
@@ -440,10 +528,10 @@ fun Round3Content(
                         .testTag("round3_input"),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TrophyGoldBright,
-                        unfocusedBorderColor = StadiumBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color) else TrophyGoldBright,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -473,7 +561,7 @@ fun Round3Content(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
                         border = ButtonDefaults.outlinedButtonBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(PitchGreenBright)
+                            brush = SolidColor(PitchGreenBright)
                         )
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = PitchGreenBright)
@@ -495,13 +583,23 @@ fun Round3Content(
             }
         }
     } else {
+        val earnedScore = if (uiState.isTwoPlayerMode) {
+            (if (uiState.activePlayerNumber == 1) uiState.player1RoundScores else uiState.player2RoundScores)[GameRound.ROUND_3_LINEUP] ?: 0
+        } else {
+            uiState.roundScores[GameRound.ROUND_3_LINEUP] ?: 0
+        }
+
+        val playerPrefix = if (uiState.isTwoPlayerMode) {
+            if (uiState.activePlayerNumber == 1) "اللاعب الأول 🔵: " else "اللاعب الثاني 🔴: "
+        } else ""
+
         RoundSuccessCard(
-            title = "اللاعب المجهول: ${lineup.mysteryPlayerName}",
+            title = "${playerPrefix}اللاعب المجهول: ${lineup.mysteryPlayerName}",
             subtitle = "مباراة: ${lineup.matchTitle}",
-            scoreEarned = uiState.roundScores[GameRound.ROUND_3_LINEUP] ?: 0,
+            scoreEarned = earnedScore,
             triviaFact = lineup.triviaFact,
             onNextClick = { viewModel.nextRound() },
-            nextRoundTitle = "الجولة الرابعة: تحدي المزاد 🔨"
+            nextRoundTitle = getNextButtonTitle(uiState, "الجولة الرابعة: تحدي المزاد 🔨")
         )
     }
 }
@@ -519,12 +617,16 @@ fun Round4Content(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = StadiumCard),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = CardDefaults.outlinedCardBorder().copy(
-            brush = androidx.compose.ui.graphics.SolidColor(TrophyGoldDark)
+            brush = SolidColor(TrophyGoldDark)
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            if (uiState.isTwoPlayerMode) {
+                PlayerTurnHeaderBadge(activePlayerNumber = uiState.activePlayerNumber)
+            }
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = "🔨", fontSize = 22.sp)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -539,7 +641,7 @@ fun Round4Content(
             Text(
                 text = auction.challengePrompt,
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 24.sp
             )
@@ -555,13 +657,19 @@ fun Round4Content(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = StadiumCard)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                brush = SolidColor(
+                    if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color)
+                    else MaterialTheme.colorScheme.outline
+                )
+            )
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
                     text = "اكتب اسماً يطابق التحدي:",
                     style = MaterialTheme.typography.titleSmall,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -575,10 +683,10 @@ fun Round4Content(
                         .testTag("round4_input"),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TrophyGoldBright,
-                        unfocusedBorderColor = StadiumBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = if (uiState.isTwoPlayerMode) (if (uiState.activePlayerNumber == 1) Player1Color else Player2Color) else TrophyGoldBright,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -608,7 +716,7 @@ fun Round4Content(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
                         border = ButtonDefaults.outlinedButtonBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(PitchGreenBright)
+                            brush = SolidColor(PitchGreenBright)
                         )
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = PitchGreenBright)
@@ -630,13 +738,23 @@ fun Round4Content(
             }
         }
     } else {
+        val earnedScore = if (uiState.isTwoPlayerMode) {
+            (if (uiState.activePlayerNumber == 1) uiState.player1RoundScores else uiState.player2RoundScores)[GameRound.ROUND_4_AUCTION] ?: 0
+        } else {
+            uiState.roundScores[GameRound.ROUND_4_AUCTION] ?: 0
+        }
+
+        val playerPrefix = if (uiState.isTwoPlayerMode) {
+            if (uiState.activePlayerNumber == 1) "اللاعب الأول 🔵: " else "اللاعب الثاني 🔴: "
+        } else ""
+
         RoundSuccessCard(
-            title = "انتهى المزاد!",
+            title = "${playerPrefix}انتهى المزاد!",
             subtitle = "نجحت في ذكر: ${uiState.round4AcceptedEntries.joinToString(" • ")}",
-            scoreEarned = uiState.roundScores[GameRound.ROUND_4_AUCTION] ?: 0,
+            scoreEarned = earnedScore,
             triviaFact = auction.triviaFact,
             onNextClick = { viewModel.nextRound() },
-            nextRoundTitle = "الجولة الخامسة: أسئلة السرعة ⚡"
+            nextRoundTitle = getNextButtonTitle(uiState, "الجولة الخامسة: أسئلة السرعة ⚡")
         )
     }
 }
@@ -651,6 +769,10 @@ fun Round5Content(
 ) {
     val speed = uiState.selectedEpisode.speed
     val currentQuestion = speed.questions.getOrNull(uiState.speedQuestionIndex)
+
+    if (uiState.isTwoPlayerMode && !uiState.round5Finished) {
+        PlayerTurnHeaderBadge(activePlayerNumber = uiState.activePlayerNumber)
+    }
 
     if (currentQuestion != null && !uiState.round5Finished) {
         SpeedQuestionCard(
@@ -672,15 +794,96 @@ fun Round5Content(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = TrophyGoldDark),
                 border = ButtonDefaults.outlinedButtonBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(TrophyGoldBright)
+                    brush = SolidColor(TrophyGoldBright)
                 )
             ) {
+                val nextLabel = if (isLast) {
+                    if (uiState.isTwoPlayerMode && uiState.activePlayerNumber == 1) {
+                        "إنهاء أسئلة اللاعب الأول وتسليم الدور للاعب الثاني 🔴"
+                    } else {
+                        "عرض النتيجة النهائية ومقارنة البطلين 🏆"
+                    }
+                } else {
+                    "السؤال السريع التالي ➡️"
+                }
                 Text(
-                    text = if (isLast) "عرض التقييم النهائي من 50 نقطة 🏆" else "السؤال السريع التالي ➡️",
+                    text = nextLabel,
                     style = MaterialTheme.typography.titleSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
+            }
+        }
+    } else if (uiState.round5Finished && uiState.isTwoPlayerMode && uiState.activePlayerNumber == 1) {
+        // Player 1 finished speed round in 2-player mode -> show handover card!
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = CardDefaults.outlinedCardBorder().copy(
+                brush = SolidColor(Player1Color)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Player1Color.copy(alpha = 0.2f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        text = "اللاعب الأول 🔵: +${uiState.player1RoundScores[GameRound.ROUND_5_SPEED] ?: 0} نقاط في السرعة",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Player1Color,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+
+                Text(
+                    text = "انتهى دور اللاعب الأول في الجولة الخامسة!",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "سلم الهاتف أو الشاشة للاعب الثاني 🔴 ليخوض أسئلة السرعة الخاصة به ويحسم اللقب!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Button(
+                    onClick = { viewModel.nextRound() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("handover_p2_speed_button"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
+                    border = ButtonDefaults.outlinedButtonBorder().copy(
+                        brush = SolidColor(PitchGreenBright)
+                    )
+                ) {
+                    Text(
+                        text = "بدء دور اللاعب الثاني 🔴 (أسئلة السرعة)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PitchGreenBright)
+                }
             }
         }
     }
@@ -703,9 +906,9 @@ fun RoundSuccessCard(
             .fillMaxWidth()
             .testTag("round_success_card"),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = StadiumCard),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = CardDefaults.outlinedCardBorder().copy(
-            brush = androidx.compose.ui.graphics.SolidColor(PitchGreenDark)
+            brush = SolidColor(PitchGreenDark)
         )
     ) {
         Column(
@@ -720,7 +923,7 @@ fun RoundSuccessCard(
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Text(
-                    text = "+$scoreEarned نقاط في رصيدك",
+                    text = "+$scoreEarned نقاط في الرصيد",
                     style = MaterialTheme.typography.labelMedium,
                     color = PitchGreenBright,
                     fontWeight = FontWeight.Bold,
@@ -739,7 +942,7 @@ fun RoundSuccessCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -747,9 +950,9 @@ fun RoundSuccessCard(
                 Spacer(modifier = Modifier.height(14.dp))
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = StadiumDark,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(StadiumBorder)
+                        brush = SolidColor(MaterialTheme.colorScheme.outline)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -768,7 +971,7 @@ fun RoundSuccessCard(
                         Text(
                             text = triviaFact,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 20.sp
                         )
                     }
@@ -786,7 +989,7 @@ fun RoundSuccessCard(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
                 border = ButtonDefaults.outlinedButtonBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(PitchGreenBright)
+                    brush = SolidColor(PitchGreenBright)
                 )
             ) {
                 Text(

@@ -2,7 +2,6 @@ package com.example.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.audio.SoundManager
 import com.example.data.model.*
 import com.example.data.preferences.AppPreferences
@@ -13,15 +12,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 data class QuizUiState(
     val currentScreen: Screen = Screen.HOME,
     val selectedEpisode: QuizEpisode = QuizDataProvider.episodes[0],
+    val player1Episode: QuizEpisode = QuizDataProvider.episodes[0],
+    val player2Episode: QuizEpisode = QuizDataProvider.episodes[0],
     val currentRound: GameRound = GameRound.ROUND_1_WHO_AM_I,
     val totalScore: Int = 0,
     val roundScores: Map<GameRound, Int> = emptyMap(),
     val roundResults: List<RoundResult> = emptyList(),
+
+    // Two-Player Mode State
+    val isTwoPlayerMode: Boolean = false,
+    val activePlayerNumber: Int = 1, // 1 or 2
+    val player1Score: Int = 0,
+    val player2Score: Int = 0,
+    val player1RoundScores: Map<GameRound, Int> = emptyMap(),
+    val player2RoundScores: Map<GameRound, Int> = emptyMap(),
 
     // Theme (Dark / Light)
     val isDarkTheme: Boolean = true,
@@ -61,11 +69,7 @@ data class QuizUiState(
 
     // Audio & Settings
     val isSoundEnabled: Boolean = true,
-    val isTtsEnabled: Boolean = true,
-    val isTwoPlayerMode: Boolean = false,
-    val activePlayerNumber: Int = 1,
-    val player1Score: Int = 0,
-    val player2Score: Int = 0
+    val isTtsEnabled: Boolean = true
 )
 
 enum class Screen {
@@ -95,13 +99,17 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(isDarkTheme = next) }
     }
 
-    fun startEpisodeWithAntiRepetition(episodeId: String, twoPlayerMode: Boolean = false) {
+    fun setTwoPlayerMode(enabled: Boolean) {
+        _uiState.update { it.copy(isTwoPlayerMode = enabled) }
+    }
+
+    fun startEpisodeWithAntiRepetition(episodeId: String, twoPlayerMode: Boolean = _uiState.value.isTwoPlayerMode) {
         val history = appPreferences.getRecentlyPlayedVariants(episodeId)
         val freshEpisode = QuizDataProvider.getEpisodeWithAntiRepetition(episodeId, history)
         startEpisode(freshEpisode, twoPlayerMode)
     }
 
-    fun startRandomMatch(twoPlayerMode: Boolean = false) {
+    fun startRandomMatch(twoPlayerMode: Boolean = _uiState.value.isTwoPlayerMode) {
         val historyMap = QuizDataProvider.episodePacks.associate { it.id to appPreferences.getRecentlyPlayedVariants(it.id) }
         val freshEpisode = QuizDataProvider.getRandomEpisodeWithAntiRepetition(historyMap)
         startEpisode(freshEpisode, twoPlayerMode)
@@ -111,14 +119,31 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         // Record this variant in history to prevent repetition
         appPreferences.recordPlayedVariant(episode.id, episode.variantIndex)
 
+        val p1Episode = episode
+        val p2Episode = if (twoPlayerMode) {
+            val pack = QuizDataProvider.episodePacks.find { it.id == episode.id } ?: QuizDataProvider.episodePacks[0]
+            val p2Idx = (episode.variantIndex + 1) % pack.variants.size
+            pack.toQuizEpisode(p2Idx)
+        } else {
+            episode
+        }
+
         _uiState.update {
             it.copy(
-                selectedEpisode = episode,
+                selectedEpisode = p1Episode,
+                player1Episode = p1Episode,
+                player2Episode = p2Episode,
                 currentScreen = Screen.GAME,
                 currentRound = GameRound.ROUND_1_WHO_AM_I,
                 totalScore = 0,
+                player1Score = 0,
+                player2Score = 0,
+                player1RoundScores = emptyMap(),
+                player2RoundScores = emptyMap(),
                 roundScores = emptyMap(),
                 roundResults = emptyList(),
+                isTwoPlayerMode = twoPlayerMode,
+                activePlayerNumber = 1,
                 unlockedHintsCount = 1,
                 round1Input = "",
                 round1Finished = false,
@@ -137,11 +162,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 speedQuestionIndex = 0,
                 speedAnsweredChoice = null,
                 speedCorrectCount = 0,
-                round5Finished = false,
-                isTwoPlayerMode = twoPlayerMode,
-                player1Score = 0,
-                player2Score = 0,
-                activePlayerNumber = 1
+                round5Finished = false
             )
         }
         soundManager.playWhistle()
@@ -203,15 +224,21 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
         val pointsTable = listOf(10, 7, 5, 2)
         val pointsToAward = pointsTable.getOrElse(state.unlockedHintsCount - 1) { 2 }
+        val pNum = state.activePlayerNumber
 
         if (isCorrect) {
             soundManager.playCorrect()
-            val speech = "يا رباه! إجابة صحيحة وفي مقتل! اللاعب هو أسطورتنا ${whoAmI.playerName}! حصلت على $pointsToAward نقاط كاملة! 🌟"
+            val speech = if (state.isTwoPlayerMode) {
+                val tag = if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴"
+                "إجابة صحيحة في مقتل لـ $tag! اللاعب هو ${whoAmI.playerName}! حصل على $pointsToAward نقاط! 🌟"
+            } else {
+                "يا رباه! إجابة صحيحة وفي مقتل! اللاعب هو أسطورتنا ${whoAmI.playerName}! حصلت على $pointsToAward نقاط كاملة! 🌟"
+            }
             soundManager.speak(speech)
 
-            val updatedRoundScores = state.roundScores + (GameRound.ROUND_1_WHO_AM_I to pointsToAward)
             val newResult = RoundResult(
                 round = GameRound.ROUND_1_WHO_AM_I,
+                playerNumber = pNum,
                 scoreEarned = pointsToAward,
                 isSuccess = true,
                 playerAnswer = input,
@@ -219,11 +246,20 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 triviaNote = whoAmI.triviaFact
             )
 
+            val newP1Score = if (pNum == 1) state.player1Score + pointsToAward else state.player1Score
+            val newP2Score = if (pNum == 2) state.player2Score + pointsToAward else state.player2Score
+            val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_1_WHO_AM_I to pointsToAward) else state.player1RoundScores
+            val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_1_WHO_AM_I to pointsToAward) else state.player2RoundScores
+
             _uiState.update {
                 it.copy(
                     round1Finished = true,
                     totalScore = state.totalScore + pointsToAward,
-                    roundScores = updatedRoundScores,
+                    player1Score = newP1Score,
+                    player2Score = newP2Score,
+                    player1RoundScores = newP1RoundScores,
+                    player2RoundScores = newP2RoundScores,
+                    roundScores = state.roundScores + (GameRound.ROUND_1_WHO_AM_I to pointsToAward),
                     roundResults = state.roundResults + newResult,
                     hostSpeech = speech,
                     hostMood = HostMood.CELEBRATING,
@@ -254,13 +290,17 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         if (state.round1Finished) return
         val whoAmI = state.selectedEpisode.whoAmI
+        val pNum = state.activePlayerNumber
         soundManager.playWrong()
-        val speech = "للأسف لم تعرف اللاعب! اللاعب المقصود هو الأسطورة ${whoAmI.playerName}. لا بأس، معوضة في الجولة القادمة!"
+        val speech = "للأسف لم تعرف اللاعب! اللاعب المقصود هو الأسطورة ${whoAmI.playerName}."
         soundManager.speak(speech)
 
-        val updatedRoundScores = state.roundScores + (GameRound.ROUND_1_WHO_AM_I to 0)
+        val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_1_WHO_AM_I to 0) else state.player1RoundScores
+        val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_1_WHO_AM_I to 0) else state.player2RoundScores
+
         val newResult = RoundResult(
             round = GameRound.ROUND_1_WHO_AM_I,
+            playerNumber = pNum,
             scoreEarned = 0,
             isSuccess = false,
             playerAnswer = "تخطي",
@@ -271,7 +311,8 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 round1Finished = true,
-                roundScores = updatedRoundScores,
+                player1RoundScores = newP1RoundScores,
+                player2RoundScores = newP2RoundScores,
                 roundResults = state.roundResults + newResult,
                 hostSpeech = speech,
                 hostMood = HostMood.DRAMATIC
@@ -294,16 +335,22 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val career = state.selectedEpisode.careerPath
         val allAccepted = listOf(career.playerName) + career.alternativeNames
         val isCorrect = ArabicTextNormalizer.matchesAny(input, allAccepted)
+        val pNum = state.activePlayerNumber
+        val pointsToAward = 10
 
         if (isCorrect) {
             soundManager.playCorrect()
-            val pointsToAward = 10
-            val speech = "الله عليك يا فنان! صاحب هذه المسيرة التاريخية هو بالفعل ${career.playerName}! 10 نقاط مستحقة بجدارة! 🔥"
+            val speech = if (state.isTwoPlayerMode) {
+                val tag = if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴"
+                "الله عليك يا فنان! $tag يكتشف صاحب المسيرة ${career.playerName}! 10 نقاط كاملة! 🔥"
+            } else {
+                "الله عليك يا فنان! صاحب هذه المسيرة التاريخية هو بالفعل ${career.playerName}! 10 نقاط مستحقة بجدارة! 🔥"
+            }
             soundManager.speak(speech)
 
-            val updatedRoundScores = state.roundScores + (GameRound.ROUND_2_CAREER to pointsToAward)
             val newResult = RoundResult(
                 round = GameRound.ROUND_2_CAREER,
+                playerNumber = pNum,
                 scoreEarned = pointsToAward,
                 isSuccess = true,
                 playerAnswer = input,
@@ -311,11 +358,20 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 triviaNote = career.triviaFact
             )
 
+            val newP1Score = if (pNum == 1) state.player1Score + pointsToAward else state.player1Score
+            val newP2Score = if (pNum == 2) state.player2Score + pointsToAward else state.player2Score
+            val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_2_CAREER to pointsToAward) else state.player1RoundScores
+            val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_2_CAREER to pointsToAward) else state.player2RoundScores
+
             _uiState.update {
                 it.copy(
                     round2Finished = true,
                     totalScore = state.totalScore + pointsToAward,
-                    roundScores = updatedRoundScores,
+                    player1Score = newP1Score,
+                    player2Score = newP2Score,
+                    player1RoundScores = newP1RoundScores,
+                    player2RoundScores = newP2RoundScores,
+                    roundScores = state.roundScores + (GameRound.ROUND_2_CAREER to pointsToAward),
                     roundResults = state.roundResults + newResult,
                     hostSpeech = speech,
                     hostMood = HostMood.CELEBRATING,
@@ -342,13 +398,17 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         if (state.round2Finished) return
         val career = state.selectedEpisode.careerPath
+        val pNum = state.activePlayerNumber
         soundManager.playWrong()
-        val speech = "صاحب هذه المسيرة التاريخية هو الأسطورة ${career.playerName}! ننتقل الآن إلى المستطيل الأخضر!"
+        val speech = "صاحب هذه المسيرة التاريخية هو الأسطورة ${career.playerName}!"
         soundManager.speak(speech)
 
-        val updatedRoundScores = state.roundScores + (GameRound.ROUND_2_CAREER to 0)
+        val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_2_CAREER to 0) else state.player1RoundScores
+        val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_2_CAREER to 0) else state.player2RoundScores
+
         val newResult = RoundResult(
             round = GameRound.ROUND_2_CAREER,
+            playerNumber = pNum,
             scoreEarned = 0,
             isSuccess = false,
             playerAnswer = "تخطي",
@@ -359,7 +419,8 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 round2Finished = true,
-                roundScores = updatedRoundScores,
+                player1RoundScores = newP1RoundScores,
+                player2RoundScores = newP2RoundScores,
                 roundResults = state.roundResults + newResult,
                 hostSpeech = speech,
                 hostMood = HostMood.DRAMATIC
@@ -382,16 +443,22 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val lineup = state.selectedEpisode.lineup
         val allAccepted = listOf(lineup.mysteryPlayerName) + lineup.alternativeNames
         val isCorrect = ArabicTextNormalizer.matchesAny(input, allAccepted)
+        val pNum = state.activePlayerNumber
+        val pointsToAward = 10
 
         if (isCorrect) {
             soundManager.playCorrect()
-            val pointsToAward = 10
-            val speech = "عين الصقر! إجابة عبقرية! اللاعب المجهول في التشكيلة هو بالفعل ${lineup.mysteryPlayerName}! 10 نقاط في المرمى! ⚽"
+            val speech = if (state.isTwoPlayerMode) {
+                val tag = if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴"
+                "عين الصقر! $tag يكتشف اللاعب المجهول ${lineup.mysteryPlayerName}! 10 نقاط في المرمى! ⚽"
+            } else {
+                "عين الصقر! إجابة عبقرية! اللاعب المجهول في التشكيلة هو بالفعل ${lineup.mysteryPlayerName}! 10 نقاط في المرمى! ⚽"
+            }
             soundManager.speak(speech)
 
-            val updatedRoundScores = state.roundScores + (GameRound.ROUND_3_LINEUP to pointsToAward)
             val newResult = RoundResult(
                 round = GameRound.ROUND_3_LINEUP,
+                playerNumber = pNum,
                 scoreEarned = pointsToAward,
                 isSuccess = true,
                 playerAnswer = input,
@@ -399,12 +466,21 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 triviaNote = lineup.triviaFact
             )
 
+            val newP1Score = if (pNum == 1) state.player1Score + pointsToAward else state.player1Score
+            val newP2Score = if (pNum == 2) state.player2Score + pointsToAward else state.player2Score
+            val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_3_LINEUP to pointsToAward) else state.player1RoundScores
+            val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_3_LINEUP to pointsToAward) else state.player2RoundScores
+
             _uiState.update {
                 it.copy(
                     round3Finished = true,
                     round3RevealedName = lineup.mysteryPlayerName,
                     totalScore = state.totalScore + pointsToAward,
-                    roundScores = updatedRoundScores,
+                    player1Score = newP1Score,
+                    player2Score = newP2Score,
+                    player1RoundScores = newP1RoundScores,
+                    player2RoundScores = newP2RoundScores,
+                    roundScores = state.roundScores + (GameRound.ROUND_3_LINEUP to pointsToAward),
                     roundResults = state.roundResults + newResult,
                     hostSpeech = speech,
                     hostMood = HostMood.CELEBRATING,
@@ -431,13 +507,17 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         if (state.round3Finished) return
         val lineup = state.selectedEpisode.lineup
+        val pNum = state.activePlayerNumber
         soundManager.playWrong()
-        val speech = "اللاعب المفقود في هذا النهائي التاريخي كان ${lineup.mysteryPlayerName}! والآن إلى التحدي الأقوى: المزاد!"
+        val speech = "اللاعب المفقود في هذا النهائي التاريخي كان ${lineup.mysteryPlayerName}!"
         soundManager.speak(speech)
 
-        val updatedRoundScores = state.roundScores + (GameRound.ROUND_3_LINEUP to 0)
+        val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_3_LINEUP to 0) else state.player1RoundScores
+        val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_3_LINEUP to 0) else state.player2RoundScores
+
         val newResult = RoundResult(
             round = GameRound.ROUND_3_LINEUP,
+            playerNumber = pNum,
             scoreEarned = 0,
             isSuccess = false,
             playerAnswer = "تخطي",
@@ -449,7 +529,8 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 round3Finished = true,
                 round3RevealedName = lineup.mysteryPlayerName,
-                roundScores = updatedRoundScores,
+                player1RoundScores = newP1RoundScores,
+                player2RoundScores = newP2RoundScores,
                 roundResults = state.roundResults + newResult,
                 hostSpeech = speech,
                 hostMood = HostMood.DRAMATIC
@@ -471,7 +552,6 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
         val auction = state.selectedEpisode.auction
 
-        // Check if already entered
         val alreadyEntered = state.round4AcceptedEntries.any {
             ArabicTextNormalizer.matchesAny(input, listOf(it))
         }
@@ -484,7 +564,6 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // Check against valid answer database
         val isValid = ArabicTextNormalizer.matchesAny(input, auction.validAnswers)
 
         if (isValid) {
@@ -526,18 +605,25 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
         val auction = state.selectedEpisode.auction
         val earnedScore = (finalEntries.size * 2).coerceAtMost(10)
+        val pNum = state.activePlayerNumber
         soundManager.playFanfare()
 
+        val tag = if (state.isTwoPlayerMode) (if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴") else "أنت"
         val speech = if (earnedScore == 10) {
-            "يا عيني على المزاد! أوفيت بوعدك وحققت 10 نقاط كاملة في التحدي! 👏🔥"
+            "يا عيني على المزاد! أوفى $tag بوعده وحقق 10 نقاط كاملة في التحدي! 👏🔥"
         } else {
-            "أحسنت! نجحت في ذكر ${finalEntries.size} من أصل ${auction.targetCount}، وحصلت على $earnedScore نقاط!"
+            "أحسنت يا $tag! نجحت في ذكر ${finalEntries.size} من أصل ${auction.targetCount}، وحصلت على $earnedScore نقاط!"
         }
         soundManager.speak(speech)
 
-        val updatedRoundScores = state.roundScores + (GameRound.ROUND_4_AUCTION to earnedScore)
+        val newP1Score = if (pNum == 1) state.player1Score + earnedScore else state.player1Score
+        val newP2Score = if (pNum == 2) state.player2Score + earnedScore else state.player2Score
+        val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_4_AUCTION to earnedScore) else state.player1RoundScores
+        val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_4_AUCTION to earnedScore) else state.player2RoundScores
+
         val newResult = RoundResult(
             round = GameRound.ROUND_4_AUCTION,
+            playerNumber = pNum,
             scoreEarned = earnedScore,
             isSuccess = earnedScore > 0,
             playerAnswer = finalEntries.joinToString("، "),
@@ -551,7 +637,11 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 round4AcceptedEntries = finalEntries,
                 round4Input = "",
                 totalScore = state.totalScore + earnedScore,
-                roundScores = updatedRoundScores,
+                player1Score = newP1Score,
+                player2Score = newP2Score,
+                player1RoundScores = newP1RoundScores,
+                player2RoundScores = newP2RoundScores,
+                roundScores = state.roundScores + (GameRound.ROUND_4_AUCTION to earnedScore),
                 roundResults = state.roundResults + newResult,
                 hostSpeech = speech,
                 hostMood = HostMood.CELEBRATING
@@ -585,7 +675,6 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        // Host commentary
         val hostMsg = if (isCorrect) "إجابة سريعة وصحيحة! (+2 نقاط)" else "خطأ في السرعة!"
         _uiState.update { it.copy(hostSpeech = hostMsg, hostMood = if (isCorrect) HostMood.EXCITED else HostMood.DRAMATIC) }
     }
@@ -606,14 +695,19 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             }
             soundManager.playTick()
         } else {
-            // Finished speed round
+            // Finished speed round for current player!
             val speedPoints = (state.speedCorrectCount * 2).coerceAtMost(10)
-            val updatedRoundScores = state.roundScores + (GameRound.ROUND_5_SPEED to speedPoints)
+            val pNum = state.activePlayerNumber
+            val newP1Score = if (pNum == 1) state.player1Score + speedPoints else state.player1Score
+            val newP2Score = if (pNum == 2) state.player2Score + speedPoints else state.player2Score
+            val newP1RoundScores = if (pNum == 1) state.player1RoundScores + (GameRound.ROUND_5_SPEED to speedPoints) else state.player1RoundScores
+            val newP2RoundScores = if (pNum == 2) state.player2RoundScores + (GameRound.ROUND_5_SPEED to speedPoints) else state.player2RoundScores
             val grandTotal = state.totalScore + speedPoints
 
             val speedSummary = "${state.speedCorrectCount} إجابات صحيحة من 5"
             val newResult = RoundResult(
                 round = GameRound.ROUND_5_SPEED,
+                playerNumber = pNum,
                 scoreEarned = speedPoints,
                 isSuccess = speedPoints >= 6,
                 playerAnswer = speedSummary,
@@ -622,28 +716,178 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             soundManager.playFanfare()
-            val finalVerdictSpeech = getFinalVerdictSpeech(grandTotal)
-            soundManager.speak(finalVerdictSpeech)
 
-            _uiState.update {
-                it.copy(
-                    round5Finished = true,
-                    totalScore = grandTotal,
-                    roundScores = updatedRoundScores,
-                    roundResults = state.roundResults + newResult,
-                    currentRound = GameRound.RESULTS,
-                    currentScreen = Screen.RESULTS,
-                    hostSpeech = finalVerdictSpeech,
-                    hostMood = HostMood.CELEBRATING
-                )
+            if (state.isTwoPlayerMode) {
+                if (pNum == 1) {
+                    val speech = "أحسنت يا لاعب 1 🔵! أنهيت أسئلة السرعة بـ $speedPoints نقاط! اضغط تسليم الدور للاعب الثاني 🔴 لحسم المباراة!"
+                    soundManager.speak(speech)
+                    _uiState.update {
+                        it.copy(
+                            round5Finished = true,
+                            player1Score = newP1Score,
+                            player1RoundScores = newP1RoundScores,
+                            roundResults = state.roundResults + newResult,
+                            hostSpeech = speech,
+                            hostMood = HostMood.CELEBRATING
+                        )
+                    }
+                } else {
+                    // Player 2 finished Round 5 -> Game Over!
+                    _uiState.update {
+                        it.copy(
+                            round5Finished = true,
+                            player2Score = newP2Score,
+                            player2RoundScores = newP2RoundScores,
+                            roundResults = state.roundResults + newResult
+                        )
+                    }
+                    finishGameTwoPlayer()
+                }
+            } else {
+                // Solo Mode
+                val finalVerdictSpeech = getFinalVerdictSpeech(grandTotal)
+                soundManager.speak(finalVerdictSpeech)
+                _uiState.update {
+                    it.copy(
+                        round5Finished = true,
+                        totalScore = grandTotal,
+                        roundScores = state.roundScores + (GameRound.ROUND_5_SPEED to speedPoints),
+                        roundResults = state.roundResults + newResult,
+                        currentRound = GameRound.RESULTS,
+                        currentScreen = Screen.RESULTS,
+                        hostSpeech = finalVerdictSpeech,
+                        hostMood = HostMood.CELEBRATING
+                    )
+                }
             }
         }
     }
 
+    private fun finishGameTwoPlayer() {
+        val state = _uiState.value
+        val p1Final = state.player1Score
+        val p2Final = state.player2Score
+        val verdict = when {
+            p1Final > p2Final -> "ألف مبروك للاعب الأول 🔵! الفائز بـ $p1Final نقطة مقابل $p2Final للاعب الثاني 🔴! أداء أسطوري وتتويج مستحق! 🏆"
+            p2Final > p1Final -> "ألف مبروك للاعب الثاني 🔴! الفائز بـ $p2Final نقطة مقابل $p1Final للاعب الأول 🔵! ريمونتادا تاريخية وتتويج مستحق! 🏆"
+            else -> "يا لها من قمة وإثارة! تعادل كروي أسطوري بـ $p1Final نقطة لكل لاعب! لا خاسر في هذه الملحمة الكروية! 🤝🔥"
+        }
+        soundManager.playFanfare()
+        soundManager.speak(verdict)
+        _uiState.update {
+            it.copy(
+                currentRound = GameRound.RESULTS,
+                currentScreen = Screen.RESULTS,
+                hostSpeech = verdict,
+                hostMood = HostMood.CELEBRATING
+            )
+        }
+    }
+
     // ----------------------------------------------------
-    // ROUND NAVIGATION
+    // ROUND & TURN NAVIGATION
     // ----------------------------------------------------
     fun nextRound() {
+        val state = _uiState.value
+        if (state.isTwoPlayerMode) {
+            if (state.activePlayerNumber == 1) {
+                // Player 1 finished this round -> Switch turn to Player 2 for the SAME round!
+                switchTurnToPlayer2()
+            } else {
+                // Player 2 finished this round -> Both players have played this round!
+                // Advance to the next round for Player 1
+                advanceToNextRoundForPlayer1()
+            }
+        } else {
+            // Solo Mode
+            advanceRoundSolo()
+        }
+    }
+
+    private fun switchTurnToPlayer2() {
+        val currentRound = _uiState.value.currentRound
+        val p2Episode = _uiState.value.player2Episode
+
+        _uiState.update {
+            it.copy(
+                activePlayerNumber = 2,
+                selectedEpisode = p2Episode,
+                // Reset inputs and flags for Player 2 for the CURRENT round
+                unlockedHintsCount = 1,
+                round1Input = "",
+                round1Finished = false,
+                round1ErrorFeedback = null,
+                round2Input = "",
+                round2Finished = false,
+                round2ErrorFeedback = null,
+                round3Input = "",
+                round3Finished = false,
+                round3RevealedName = null,
+                round3ErrorFeedback = null,
+                round4Input = "",
+                round4AcceptedEntries = emptyList(),
+                round4Finished = false,
+                round4Feedback = null,
+                speedQuestionIndex = 0,
+                speedAnsweredChoice = null,
+                speedCorrectCount = 0,
+                round5Finished = false,
+                hostSpeech = "حان الآن دور اللاعب الثاني 🔴 في ${currentRound.titleAr}! تحدي متجدد لك كلياً، أظهر مهاراتك!",
+                hostMood = HostMood.EXCITED
+            )
+        }
+        soundManager.playWhistle()
+        soundManager.speak("حان دور اللاعب الثاني!")
+    }
+
+    private fun advanceToNextRoundForPlayer1() {
+        val current = _uiState.value.currentRound
+        val next = when (current) {
+            GameRound.ROUND_1_WHO_AM_I -> GameRound.ROUND_2_CAREER
+            GameRound.ROUND_2_CAREER -> GameRound.ROUND_3_LINEUP
+            GameRound.ROUND_3_LINEUP -> GameRound.ROUND_4_AUCTION
+            GameRound.ROUND_4_AUCTION -> GameRound.ROUND_5_SPEED
+            GameRound.ROUND_5_SPEED -> GameRound.RESULTS
+            GameRound.RESULTS -> GameRound.RESULTS
+        }
+
+        if (next == GameRound.RESULTS) {
+            finishGameTwoPlayer()
+        } else {
+            val p1Episode = _uiState.value.player1Episode
+            _uiState.update {
+                it.copy(
+                    currentRound = next,
+                    activePlayerNumber = 1,
+                    selectedEpisode = p1Episode,
+                    // Reset inputs for Player 1 for the NEW round
+                    unlockedHintsCount = 1,
+                    round1Input = "",
+                    round1Finished = false,
+                    round1ErrorFeedback = null,
+                    round2Input = "",
+                    round2Finished = false,
+                    round2ErrorFeedback = null,
+                    round3Input = "",
+                    round3Finished = false,
+                    round3RevealedName = null,
+                    round3ErrorFeedback = null,
+                    round4Input = "",
+                    round4AcceptedEntries = emptyList(),
+                    round4Finished = false,
+                    round4Feedback = null,
+                    speedQuestionIndex = 0,
+                    speedAnsweredChoice = null,
+                    speedCorrectCount = 0,
+                    round5Finished = false
+                )
+            }
+            soundManager.playWhistle()
+            greetForCurrentRound()
+        }
+    }
+
+    private fun advanceRoundSolo() {
         val current = _uiState.value.currentRound
         val next = when (current) {
             GameRound.ROUND_1_WHO_AM_I -> GameRound.ROUND_2_CAREER
@@ -657,7 +901,30 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         if (next == GameRound.RESULTS) {
             _uiState.update { it.copy(currentRound = next, currentScreen = Screen.RESULTS) }
         } else {
-            _uiState.update { it.copy(currentRound = next) }
+            _uiState.update {
+                it.copy(
+                    currentRound = next,
+                    unlockedHintsCount = 1,
+                    round1Input = "",
+                    round1Finished = false,
+                    round1ErrorFeedback = null,
+                    round2Input = "",
+                    round2Finished = false,
+                    round2ErrorFeedback = null,
+                    round3Input = "",
+                    round3Finished = false,
+                    round3RevealedName = null,
+                    round3ErrorFeedback = null,
+                    round4Input = "",
+                    round4AcceptedEntries = emptyList(),
+                    round4Finished = false,
+                    round4Feedback = null,
+                    speedQuestionIndex = 0,
+                    speedAnsweredChoice = null,
+                    speedCorrectCount = 0,
+                    round5Finished = false
+                )
+            }
             greetForCurrentRound()
         }
     }
@@ -665,24 +932,34 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     private fun greetForCurrentRound() {
         val state = _uiState.value
         val round = state.currentRound
+        val isTwo = state.isTwoPlayerMode
+        val pNum = state.activePlayerNumber
+        val pTag = if (isTwo) (if (pNum == 1) "نبدأ مع اللاعب الأول 🔵! " else "حان دور اللاعب الثاني 🔴! ") else ""
+
         val speech = when (round) {
             GameRound.ROUND_1_WHO_AM_I -> {
-                "أهلاً بك في الجولة الأولى: فقرة 'من أنا؟'! أمامك 4 تلميحات متدرجة للاعب كروي، التلميح الأول بـ 10 نقاط كاملة! فكّر وأجب الآن!"
+                "${pTag}الجولة الأولى: فقرة 'من أنا؟'! أمامك 4 تلميحات متدرجة للاعب، التلميح الأول بـ 10 نقاط كاملة! فكّر وأجب الآن!"
             }
             GameRound.ROUND_2_CAREER -> {
-                "والآن مع الجولة الثانية: 'الرابط العجيب ومسيرة لاعب'! أمامك الأندية التي لعب لها نجمنا بالترتيب الزمني! من هو هذا اللاعب؟"
+                "${pTag}الجولة الثانية: 'الرابط العجيب ومسيرة لاعب'! أمامك الأندية التي لعب لها نجمنا بالترتيب الزمني! من هو هذا اللاعب؟"
             }
             GameRound.ROUND_3_LINEUP -> {
-                "الجولة الثالثة: 'التشكيلة الناقصة'! مباراة تاريخية خالدة، وتشكيلة تكتيكية كاملة إلا نجماً واحداً هو 'اللاعب المجهول ❓'! اكشف هويته!"
+                "${pTag}الجولة الثالثة: 'التشكيلة الناقصة'! مباراة تاريخية خالدة، وتشكيلة تكتيكية كاملة إلا نجماً واحداً هو 'اللاعب المجهول ❓'! اكشف هويته!"
             }
             GameRound.ROUND_4_AUCTION -> {
-                "الجولة الرابعة: 'تحدي المزاد'! التحدي هو: ${state.selectedEpisode.auction.challengePrompt}! اكتب الأسماء الصحيحة لتحصد 10 نقاط!"
+                "${pTag}الجولة الرابعة: 'تحدي المزاد'! التحدي هو: ${state.selectedEpisode.auction.challengePrompt}! اكتب الأسماء الصحيحة لتحصد 10 نقاط!"
             }
             GameRound.ROUND_5_SPEED -> {
-                "الجولة الخامسة والأخيرة: 'أسئلة السرعة'! 5 معلومات كروية حاسمة، أجب بـ (صح) أو (خطأ)! كل ثانية لها ثمن!"
+                "${pTag}الجولة الخامسة والأخيرة: 'أسئلة السرعة'! 5 معلومات كروية حاسمة، أجب بـ (صح) أو (خطأ) في أسرع وقت!"
             }
             GameRound.RESULTS -> {
-                getFinalVerdictSpeech(state.totalScore)
+                if (isTwo) {
+                    val p1 = state.player1Score
+                    val p2 = state.player2Score
+                    if (p1 > p2) "ألف مبروك للاعب الأول 🔵 الفوز!" else if (p2 > p1) "ألف مبروك للاعب الثاني 🔴 الفوز!" else "تعادل أسطوري بين اللاعبين!"
+                } else {
+                    getFinalVerdictSpeech(state.totalScore)
+                }
             }
         }
         _uiState.update { it.copy(hostSpeech = speech, hostMood = HostMood.WELCOME) }
