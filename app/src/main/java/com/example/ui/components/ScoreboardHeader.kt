@@ -1,8 +1,8 @@
 package com.example.ui.components
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,16 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.GameRound
 import com.example.ui.theme.*
-
-val Player1Color = Color(0xFF38BDF8) // Electric Blue / Cyan
-val Player2Color = Color(0xFFF43F5E) // Crimson Coral / Red
 
 @Composable
 fun ScoreboardHeader(
@@ -44,13 +40,16 @@ fun ScoreboardHeader(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(12.dp)
+            )
             .testTag("scoreboard_header"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = SolidColor(MaterialTheme.colorScheme.outline)
         )
     ) {
         Column(
@@ -66,33 +65,43 @@ fun ScoreboardHeader(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // Back Button
-                IconButton(
-                    onClick = onBackClick,
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .testTag("header_back_button")
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                        .clickable { onBackClick() }
+                        .testTag("header_back_button"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "الرجوع",
                         tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
                 // Round Badge
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (currentRound == GameRound.RESULTS) "نهاية التحدي 🏁" else "الجولة ${currentRound.roundNumber} من 5",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TrophyGoldBright,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PitchGreenDark.copy(alpha = 0.25f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            text = if (currentRound == GameRound.RESULTS) "نهاية التحدي 🏁" else "الجولة ${currentRound.roundNumber} من 5",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PitchGreenBright,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = currentRound.titleAr,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
                     )
@@ -103,20 +112,20 @@ fun ScoreboardHeader(
                     if (!isTwoPlayerMode) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.dp, TrophyGoldDark, RoundedCornerShape(10.dp))
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .border(1.dp, TrophyGold, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "🏆", fontSize = 14.sp)
+                                Text(text = "🏆", fontSize = 12.sp)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "$currentScore",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = TrophyGoldBright,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
                                     text = "/$maxScore",
@@ -128,102 +137,121 @@ fun ScoreboardHeader(
                         Spacer(modifier = Modifier.width(6.dp))
                     }
 
-                    IconButton(
-                        onClick = onToggleSound,
+                    // Sound Toggle Button
+                    Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .testTag("header_sound_button")
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .clickable { onToggleSound() }
+                            .testTag("header_sound_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isSoundEnabled) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeMute,
                             contentDescription = "كتم/تشغيل الصوت",
                             tint = if (isSoundEnabled) PitchGreenBright else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
             }
 
-            // Two-Player Turn & Live Dual Scores Banner
+            // Two-Player Live Head-to-Head Banner (Clean Flat Design)
             if (isTwoPlayerMode && currentRound != GameRound.RESULTS) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Player 1 Pill
                         val isP1Active = activePlayerNumber == 1
+                        val isP2Active = activePlayerNumber == 2
+
+                        // Player 1 Pill
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isP1Active) Player1Color.copy(alpha = 0.2f) else Color.Transparent)
+                                .background(if (isP1Active) Player1Glow else Color.Transparent)
                                 .border(
-                                    width = if (isP1Active) 2.dp else 1.dp,
+                                    width = if (isP1Active) 1.5.dp else 1.dp,
                                     color = if (isP1Active) Player1Color else MaterialTheme.colorScheme.outline,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "🔵", fontSize = 12.sp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Player1Color)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "اللاعب 1: $player1Score",
+                                    text = "لاعب 1: $player1Score",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = if (isP1Active) Player1Color else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = if (isP1Active) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (isP1Active) FontWeight.ExtraBold else FontWeight.Medium
                                 )
                             }
                         }
 
-                        // Active Turn Banner
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isP1Active) Player1Color else Player2Color
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (isP1Active) "دور اللاعب الأول 🔵" else "دور اللاعب الثاني 🔴",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                            }
-                        }
-
-                        // Player 2 Pill
-                        val isP2Active = activePlayerNumber == 2
+                        // Central Turn Banner (Flat)
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isP2Active) Player2Color.copy(alpha = 0.2f) else Color.Transparent)
+                                .background(
+                                    if (isP1Active) Player1Color else Player2Color
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (isP1Active) "دور اللاعب الأول 🔵" else "دور اللاعب الثاني 🔴",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        // Player 2 Pill
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isP2Active) Player2Glow else Color.Transparent)
                                 .border(
-                                    width = if (isP2Active) 2.dp else 1.dp,
+                                    width = if (isP2Active) 1.5.dp else 1.dp,
                                     color = if (isP2Active) Player2Color else MaterialTheme.colorScheme.outline,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "🔴", fontSize = 12.sp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Player2Color)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "اللاعب 2: $player2Score",
+                                    text = "لاعب 2: $player2Score",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = if (isP2Active) Player2Color else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = if (isP2Active) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (isP2Active) FontWeight.ExtraBold else FontWeight.Medium
                                 )
                             }
                         }

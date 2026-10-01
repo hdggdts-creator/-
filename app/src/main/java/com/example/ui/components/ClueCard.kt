@@ -1,8 +1,8 @@
 package com.example.ui.components
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,15 +43,20 @@ fun ClueCard(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("hint_card_$index"),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isUnlocked) StadiumCardHover else StadiumCard.copy(alpha = 0.6f)
-                ),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(
-                        if (isUnlocked) TrophyGoldDark else StadiumBorder
+                    .border(
+                        width = 1.dp,
+                        color = if (isUnlocked) TrophyGold else MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(10.dp)
                     )
+                    .testTag("hint_card_$index"),
+                shape = RoundedCornerShape(10.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (isUnlocked) 2.dp else 0.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isUnlocked) {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
                 )
             ) {
                 Row(
@@ -60,18 +65,21 @@ fun ClueCard(
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Badge Number
                     Box(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(if (isUnlocked) TrophyGold else StadiumBorder),
+                            .background(
+                                if (isUnlocked) TrophyGold else MaterialTheme.colorScheme.outline
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "${index + 1}",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = if (isUnlocked) StadiumDark else TextMuted,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isUnlocked) Color.Black else TextMuted,
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
 
@@ -85,16 +93,23 @@ fun ClueCard(
                         ) {
                             Text(
                                 text = "التلميح رقم ${index + 1}",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 color = if (isUnlocked) TrophyGoldBright else TextMuted,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "$hintPoint نقاط",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isUnlocked) PitchGreenBright else TextMuted,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isUnlocked) PitchGreenDark.copy(alpha = 0.3f) else Color.Transparent,
+                                border = if (isUnlocked) androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.5f)) else null
+                            ) {
+                                Text(
+                                    text = "$hintPoint نقاط",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isUnlocked) PitchGreenBright else TextMuted,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -103,22 +118,23 @@ fun ClueCard(
                             Text(
                                 text = hintText,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = TextPrimary,
-                                lineHeight = 21.sp
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 20.sp
                             )
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
-                                    contentDescription = "مغلق",
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(16.dp)
+                                    contentDescription = "مقفل",
+                                    tint = TextMuted.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "تلميح مغلق (سيكلف خصم في النقاط)",
+                                    text = "مغلق • يفتح بخصم من النقاط",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextMuted
+                                    color = TextMuted.copy(alpha = 0.8f)
                                 )
                             }
                         }
@@ -127,32 +143,37 @@ fun ClueCard(
             }
         }
 
+        // Action button to reveal next clue
         if (unlockedCount < hints.size) {
             val nextPoints = cluePoints.getOrElse(unlockedCount) { 2 }
-            OutlinedButton(
+            Button(
                 onClick = onRevealNextHint,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("reveal_hint_button"),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
+                    .height(46.dp)
+                    .testTag("reveal_next_hint_button"),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = TrophyGoldBright
                 ),
-                border = ButtonDefaults.outlinedButtonBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(TrophyGoldDark)
-                )
+                border = androidx.compose.foundation.BorderStroke(1.dp, TrophyGold.copy(alpha = 0.6f)),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Visibility,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "طلب التلميح التالي رقم ${unlockedCount + 1} (تصبح الجولة بـ $nextPoints نقاط)",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = null,
+                        tint = TrophyGoldBright,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "كشف التلميح التالي ($nextPoints نقاط)",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

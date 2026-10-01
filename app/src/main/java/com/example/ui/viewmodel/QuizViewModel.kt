@@ -2,16 +2,20 @@ package com.example.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.audio.SoundManager
 import com.example.data.model.*
 import com.example.data.preferences.AppPreferences
 import com.example.data.repository.QuizDataProvider
 import com.example.ui.components.HostMood
 import com.example.util.ArabicTextNormalizer
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class QuizUiState(
     val currentScreen: Screen = Screen.HOME,
@@ -22,6 +26,11 @@ data class QuizUiState(
     val totalScore: Int = 0,
     val roundScores: Map<GameRound, Int> = emptyMap(),
     val roundResults: List<RoundResult> = emptyList(),
+
+    // Countdown Timer (Default 90 seconds = 1.5 minutes)
+    val timerTotalSeconds: Int = 90,
+    val timerRemainingSeconds: Int = 90,
+    val isTimerRunning: Boolean = false,
 
     // Two-Player Mode State
     val isTwoPlayerMode: Boolean = false,
@@ -91,6 +100,64 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(isDarkTheme = appPreferences.isDarkTheme) }
         // Greet user on launch
         greetForCurrentRound()
+    }
+
+    private var timerJob: Job? = null
+
+    fun startTimer(durationSeconds: Int = 90) {
+        timerJob?.cancel()
+        _uiState.update {
+            it.copy(
+                timerTotalSeconds = durationSeconds,
+                timerRemainingSeconds = durationSeconds,
+                isTimerRunning = true
+            )
+        }
+        timerJob = viewModelScope.launch {
+            while (_uiState.value.timerRemainingSeconds > 0 && _uiState.value.isTimerRunning) {
+                delay(1000L)
+                val remaining = _uiState.value.timerRemainingSeconds - 1
+                _uiState.update { it.copy(timerRemainingSeconds = remaining.coerceAtLeast(0)) }
+
+                // Play tick sound on last 10 seconds to create TV show tension
+                if (remaining in 1..10 && _uiState.value.isSoundEnabled) {
+                    soundManager.playTick()
+                }
+
+                if (remaining <= 0) {
+                    onTimerExpired()
+                    break
+                }
+            }
+        }
+    }
+
+    fun stopTimer() {
+        timerJob?.cancel()
+        _uiState.update { it.copy(isTimerRunning = false) }
+    }
+
+    private fun onTimerExpired() {
+        stopTimer()
+        soundManager.playWrong()
+        val speech = "انتهى الوقت المحدد للجولة! ⏳"
+        _uiState.update {
+            it.copy(
+                hostSpeech = speech,
+                hostMood = HostMood.DRAMATIC
+            )
+        }
+        soundManager.speak(speech)
+
+        val currentRound = _uiState.value.currentRound
+        when (currentRound) {
+            GameRound.ROUND_1_WHO_AM_I -> if (!_uiState.value.round1Finished) skipRound1()
+            GameRound.ROUND_2_CAREER -> if (!_uiState.value.round2Finished) skipRound2()
+            GameRound.ROUND_3_LINEUP -> if (!_uiState.value.round3Finished) skipRound3()
+            GameRound.ROUND_4_AUCTION -> if (!_uiState.value.round4Finished) finishAuction()
+            GameRound.ROUND_5_SPEED -> if (!_uiState.value.round5Finished) answerSpeedQuestion(false)
+            GameRound.RESULTS -> {}
+        }
     }
 
     fun toggleTheme() {
@@ -170,6 +237,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun goToHome() {
+        stopTimer()
         soundManager.stopSpeaking()
         _uiState.update {
             it.copy(currentScreen = Screen.HOME)
@@ -227,6 +295,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val pNum = state.activePlayerNumber
 
         if (isCorrect) {
+            stopTimer()
             soundManager.playCorrect()
             val speech = if (state.isTwoPlayerMode) {
                 val tag = if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴"
@@ -289,6 +358,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     fun skipRound1() {
         val state = _uiState.value
         if (state.round1Finished) return
+        stopTimer()
         val whoAmI = state.selectedEpisode.whoAmI
         val pNum = state.activePlayerNumber
         soundManager.playWrong()
@@ -339,6 +409,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val pointsToAward = 10
 
         if (isCorrect) {
+            stopTimer()
             soundManager.playCorrect()
             val speech = if (state.isTwoPlayerMode) {
                 val tag = if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴"
@@ -397,6 +468,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     fun skipRound2() {
         val state = _uiState.value
         if (state.round2Finished) return
+        stopTimer()
         val career = state.selectedEpisode.careerPath
         val pNum = state.activePlayerNumber
         soundManager.playWrong()
@@ -447,6 +519,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val pointsToAward = 10
 
         if (isCorrect) {
+            stopTimer()
             soundManager.playCorrect()
             val speech = if (state.isTwoPlayerMode) {
                 val tag = if (pNum == 1) "اللاعب الأول 🔵" else "اللاعب الثاني 🔴"
@@ -506,6 +579,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     fun skipRound3() {
         val state = _uiState.value
         if (state.round3Finished) return
+        stopTimer()
         val lineup = state.selectedEpisode.lineup
         val pNum = state.activePlayerNumber
         soundManager.playWrong()
@@ -605,6 +679,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     fun finishAuction(finalEntries: List<String> = _uiState.value.round4AcceptedEntries) {
         val state = _uiState.value
         if (state.round4Finished) return
+        stopTimer()
 
         val auction = state.selectedEpisode.auction
         val earnedScore = (finalEntries.size * 2).coerceAtMost(10)
@@ -658,6 +733,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     fun answerSpeedQuestion(userAnswer: Boolean) {
         val state = _uiState.value
         if (state.round5Finished || state.speedAnsweredChoice != null) return
+        stopTimer()
 
         val speedRound = state.selectedEpisode.speed
         val currentQ = speedRound.questions.getOrNull(state.speedQuestionIndex) ?: return
@@ -688,6 +764,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         val nextIndex = state.speedQuestionIndex + 1
 
         if (nextIndex < speedRound.questions.size) {
+            startTimer(90)
             _uiState.update {
                 it.copy(
                     speedQuestionIndex = nextIndex,
@@ -935,6 +1012,11 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     private fun greetForCurrentRound() {
         val state = _uiState.value
         val round = state.currentRound
+        if (state.currentScreen == Screen.GAME && round != GameRound.RESULTS) {
+            startTimer(90)
+        } else {
+            stopTimer()
+        }
         val isTwo = state.isTwoPlayerMode
         val pNum = state.activePlayerNumber
         val pTag = if (isTwo) (if (pNum == 1) "نبدأ مع اللاعب الأول 🔵! " else "حان دور اللاعب الثاني 🔴! ") else ""
@@ -980,6 +1062,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
+        stopTimer()
         soundManager.release()
     }
 }

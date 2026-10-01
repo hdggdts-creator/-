@@ -3,7 +3,9 @@ package com.example.ui.components
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -34,30 +36,41 @@ fun SpeedQuestionCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(12.dp)
+            )
             .testTag("speed_question_card"),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = StadiumCard
-        ),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = androidx.compose.ui.graphics.SolidColor(StadiumBorder)
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(18.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header: question counter
+            // Header: Question counter & points badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⚡", fontSize = 18.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "⚡", fontSize = 14.sp)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "السؤال ${currentIndex + 1} من $totalCount",
                         style = MaterialTheme.typography.titleSmall,
@@ -67,131 +80,153 @@ fun SpeedQuestionCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = StadiumDark
+                    shape = RoundedCornerShape(6.dp),
+                    color = PitchGreenDark.copy(alpha = 0.35f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.5f))
                 ) {
                     Text(
                         text = "2 نقطتان",
                         style = MaterialTheme.typography.labelSmall,
                         color = PitchGreenBright,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Statement
+            // Statement Text
             Text(
                 text = question.statement,
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                lineHeight = 26.sp,
+                lineHeight = 24.sp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // True / False Buttons or Answer Feedback
             if (answeredChoice == null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // True Button (Green)
+                    // True Button (Flat Solid Green)
                     Button(
                         onClick = { onAnswerSelected(true) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(54.dp)
-                            .testTag("speed_true_button"),
-                        shape = RoundedCornerShape(14.dp),
+                            .height(50.dp)
+                            .testTag("speed_btn_true"),
+                        shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = PitchGreenDark
+                            containerColor = PitchGreen,
+                            contentColor = Color.White
                         ),
-                        border = ButtonDefaults.outlinedButtonBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(PitchGreenBright)
-                        )
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = PitchGreenBright,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "صــح",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "صـح ✔",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
 
-                    // False Button (Red)
+                    // False Button (Flat Solid Red)
                     Button(
                         onClick = { onAnswerSelected(false) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(54.dp)
-                            .testTag("speed_false_button"),
-                        shape = RoundedCornerShape(14.dp),
+                            .height(50.dp)
+                            .testTag("speed_btn_false"),
+                        shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = BuzzerRedDark
+                            containerColor = BuzzerRed,
+                            contentColor = Color.White
                         ),
-                        border = ButtonDefaults.outlinedButtonBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(BuzzerRed)
-                        )
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            tint = BuzzerRed,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "خـطـأ",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "خـطـأ ✖",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
                 }
             } else {
+                // Answer Revealed Feedback
                 val isCorrect = answeredChoice == question.isTrue
-                val feedbackBg = if (isCorrect) PitchGreenDark else BuzzerRedDark
-                val feedbackBorder = if (isCorrect) PitchGreenBright else BuzzerRed
+                val bannerColor = if (isCorrect) PitchGreen else BuzzerRed
 
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = feedbackBg.copy(alpha = 0.85f),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(feedbackBorder)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = bannerColor.copy(alpha = 0.15f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, bannerColor)
                 ) {
                     Column(
                         modifier = Modifier.padding(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (isCorrect) Icons.Default.Check else Icons.Default.Close,
+                                contentDescription = null,
+                                tint = bannerColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isCorrect) "إجابة صحيحة! (+2 نقاط)" else "إجابة خاطئة! (0 نقاط)",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = bannerColor,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Text(
-                            text = if (isCorrect) "إجابة صحيحة! (+2 نقاط) 👏" else "إجابة خاطئة! ❌",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = if (isCorrect) PitchGreenBright else BuzzerRed,
+                            text = "الإجابة الصحيحة هي: ${if (question.isTrue) "صح ✔" else "خطأ ✖"}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
                         Text(
                             text = question.explanation,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
-                            textAlign = TextAlign.Center
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
                         )
                     }
                 }

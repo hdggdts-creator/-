@@ -1,12 +1,8 @@
 package com.example.ui.components
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,17 +43,24 @@ fun AuctionItemChips(
                 color = TrophyGoldBright,
                 fontWeight = FontWeight.Bold
             )
-            Text(
-                text = "${acceptedEntries.size * 2} من 10 نقاط",
-                style = MaterialTheme.typography.labelMedium,
-                color = PitchGreenBright,
-                fontWeight = FontWeight.Bold
-            )
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = PitchGreenDark.copy(alpha = 0.3f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.5f))
+            ) {
+                Text(
+                    text = "${acceptedEntries.size * 2} من 10 نقاط",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PitchGreenBright,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Slots grid
+        // Slots grid with flat cards
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -69,54 +72,69 @@ fun AuctionItemChips(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(68.dp)
-                        .testTag("auction_slot_$i"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isFilled) PitchGreenDark.copy(alpha = 0.8f) else StadiumDark
-                    ),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(
-                            if (isFilled) PitchGreenBright else StadiumBorder
+                        .height(72.dp)
+                        .border(
+                            width = 1.dp,
+                            color = if (isFilled) PitchGreen else MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(10.dp)
                         )
+                        .testTag("auction_slot_$i"),
+                    shape = RoundedCornerShape(10.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = if (isFilled) 2.dp else 0.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isFilled) {
+                            PitchGreenDark.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
                     )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(4.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        if (isFilled) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "صحيح",
-                                tint = PitchGreenBright,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
+                        if (isFilled && playerName != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(PitchGreen),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "صحيح",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = playerName.orEmpty(),
+                                text = playerName,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextPrimary,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
                                 textAlign = TextAlign.Center,
-                                maxLines = 1
+                                maxLines = 2,
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp
                             )
                         } else {
-                            Text(
-                                text = "${i + 1}",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = TextMuted,
-                                fontWeight = FontWeight.Bold
+                            Icon(
+                                imageVector = Icons.Default.SportsSoccer,
+                                contentDescription = "فارغ",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp)
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "متبقي",
+                                text = "لاعب ${i + 1}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted,
-                                fontSize = 9.sp
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                fontSize = 10.sp
                             )
                         }
                     }

@@ -1,9 +1,10 @@
 package com.example.ui.screens
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,18 +17,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.GameRound
-import com.example.ui.components.HostMood
-import com.example.ui.components.Player1Color
-import com.example.ui.components.Player2Color
+import com.example.ui.components.ElegantBrandWatermark
 import com.example.ui.components.PresenterCard
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.QuizViewModel
@@ -37,6 +35,7 @@ fun ResultsScreen(
     viewModel: QuizViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showAnswersReview by remember { mutableStateOf(false) }
 
@@ -48,6 +47,33 @@ fun ResultsScreen(
     val p1Score = uiState.player1Score
     val p2Score = uiState.player2Score
     val soloScore = uiState.totalScore
+
+    fun shareResult() {
+        try {
+            val shareText = if (isTwoPlayer) {
+                val winnerName = when {
+                    p1Score > p2Score -> "اللاعب الأول 🔵"
+                    p2Score > p1Score -> "اللاعب الثاني 🔴"
+                    else -> "تعادل كروي أسطوري 🤝"
+                }
+                "⚽ انتهت مباراة تحدي الـ 30 كروي (وضع 1v1)!\n" +
+                "النتيجة: اللاعب 1: $p1Score نقطة | اللاعب 2: $p2Score نقطة\n" +
+                "الفائز: $winnerName 🏆\n\n" +
+                "العب معنا الآن: https://t.me/Mos_mohh"
+            } else {
+                "⚽ حققت $soloScore من 50 نقطة في تطبيق «تحدي الـ 30 كروي»!\n" +
+                "هل تستطيع كسر رقمي وتجاوز الـ 5 جولات؟\n\n" +
+                "العب الآن: https://t.me/Mos_mohh"
+            }
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "مشاركة نتيجة تحدي الـ 30")
+            context.startActivity(shareIntent)
+        } catch (_: Exception) {}
+    }
 
     val allRounds = listOf(
         GameRound.ROUND_1_WHO_AM_I,
@@ -63,11 +89,11 @@ fun ResultsScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
             .testTag("results_screen"),
-        contentPadding = PaddingValues(top = 20.dp, bottom = 36.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(top = 16.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // -------------------------------------------------------------
-        // Header Trophy / Winner Announcement
+        // Header Trophy / Winner Announcement (Clean Flat Design)
         // -------------------------------------------------------------
         item {
             if (isTwoPlayer) {
@@ -77,9 +103,9 @@ fun ResultsScreen(
                 val isDraw = p1Score == p2Score
 
                 val winnerTitle = when {
-                    isP1Winner -> "🏆 فوز مستحق للاعب الأول 🔵!"
-                    isP2Winner -> "🏆 فوز مستحق للاعب الثاني 🔴!"
-                    else -> "🤝 تعادل كروي أسطوري ومثير!"
+                    isP1Winner -> "🏆 فوز اللاعب الأول 🔵!"
+                    isP2Winner -> "🏆 فوز اللاعب الثاني 🔴!"
+                    else -> "🤝 تعادل كروي أسطوري!"
                 }
 
                 val winnerSubtitle = when {
@@ -97,33 +123,34 @@ fun ResultsScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("two_player_winner_card"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(
-                            listOf(Player1Color, TrophyGold, Player2Color)
+                        .border(
+                            width = 1.dp,
+                            color = winnerColor,
+                            shape = RoundedCornerShape(12.dp)
                         )
-                    )
+                        .testTag("two_player_winner_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(60.dp)
                                 .clip(CircleShape)
-                                .background(winnerColor.copy(alpha = 0.2f))
-                                .border(2.5.dp, winnerColor, CircleShape),
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .border(2.dp, winnerColor, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = if (isDraw) "🤝" else "👑", fontSize = 36.sp)
+                            Text(text = if (isDraw) "🤝" else "👑", fontSize = 30.sp)
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
                             text = winnerTitle,
@@ -144,20 +171,23 @@ fun ResultsScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Score Comparison Duo
+                        // Score Comparison Duo Cards
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             // Player 1 Box
                             Card(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .border(
+                                        width = if (isP1Winner) 1.5.dp else 1.dp,
+                                        color = if (isP1Winner) Player1Color else MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(10.dp)
+                                    ),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isP1Winner) Player1Color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                border = CardDefaults.outlinedCardBorder().copy(
-                                    brush = SolidColor(if (isP1Winner) Player1Color else MaterialTheme.colorScheme.outline)
+                                    containerColor = if (isP1Winner) Player1Color.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                                 )
                             ) {
                                 Column(
@@ -165,20 +195,20 @@ fun ResultsScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = "🔵", fontSize = 14.sp)
+                                        Text(text = "🔵", fontSize = 12.sp)
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = "اللاعب الأول",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Player1Color,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.ExtraBold
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "$p1Score",
-                                        fontSize = 36.sp,
-                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Black,
                                         color = if (isP1Winner) Player1Color else MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
@@ -191,13 +221,16 @@ fun ResultsScreen(
 
                             // Player 2 Box
                             Card(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .border(
+                                        width = if (isP2Winner) 1.5.dp else 1.dp,
+                                        color = if (isP2Winner) Player2Color else MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(10.dp)
+                                    ),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isP2Winner) Player2Color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                border = CardDefaults.outlinedCardBorder().copy(
-                                    brush = SolidColor(if (isP2Winner) Player2Color else MaterialTheme.colorScheme.outline)
+                                    containerColor = if (isP2Winner) Player2Color.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                                 )
                             ) {
                                 Column(
@@ -205,20 +238,20 @@ fun ResultsScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = "🔴", fontSize = 14.sp)
+                                        Text(text = "🔴", fontSize = 12.sp)
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = "اللاعب الثاني",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Player2Color,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.ExtraBold
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "$p2Score",
-                                        fontSize = 36.sp,
-                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Black,
                                         color = if (isP2Winner) Player2Color else MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
@@ -232,317 +265,265 @@ fun ResultsScreen(
                     }
                 }
             } else {
-                // Solo Mode Trophy Card
-                val (ratingTitle, ratingBadge, ratingColor) = when {
-                    soloScore >= 45 -> Triple("أسطورة الأساطير (موسوعة كروية خارقة)", "🏆", TrophyGoldBright)
-                    soloScore >= 35 -> Triple("محلل عالمي وخبير كروي رفيع", "🥇", TrophyGold)
-                    soloScore >= 25 -> Triple("عاشق حقيقي ومتابع وفيّ للمستديرة", "🥈", PitchGreenBright)
-                    else -> Triple("تحتاج لمراجعة مباريات الأبطال والتاريخ!", "⚽", MaterialTheme.colorScheme.onSurfaceVariant)
+                // Solo Evaluation Card (Clean Flat Design)
+                val performanceTier = when {
+                    soloScore >= 45 -> "أسطورة كروية عالمية 🌟"
+                    soloScore >= 35 -> "محلل تكتيكي عبقري ⚽"
+                    soloScore >= 25 -> "خبير كروي متمكن 🎯"
+                    soloScore >= 15 -> "متابع شغوف للساحرة المستديرة 📺"
+                    else -> "بداية الطريق الكروي 👟"
                 }
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("final_trophy_card"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(
-                            listOf(TrophyGold, PitchGreenDark, NeonCyan)
+                        .border(
+                            width = 1.dp,
+                            color = TrophyGold,
+                            shape = RoundedCornerShape(12.dp)
                         )
-                    )
+                        .testTag("solo_results_card"),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp)
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(80.dp)
+                                .size(60.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(3.dp, ratingColor, CircleShape),
+                                .border(2.dp, TrophyGold, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = ratingBadge, fontSize = 42.sp)
+                            Text(text = "🏅", fontSize = 30.sp)
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = "النتيجة النهائية للتحدي",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = performanceTier,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = TrophyGoldBright,
+                            fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "$soloScore",
-                                fontSize = 54.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TrophyGoldBright
-                            )
-                            Text(
-                                text = " / 50",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                        }
+                        Text(
+                            text = "$soloScore / 50 نقطة",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = CardDefaults.outlinedCardBorder().copy(
-                                brush = SolidColor(ratingColor)
-                            )
-                        ) {
-                            Text(
-                                text = ratingTitle,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = ratingColor,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                            )
-                        }
+                        Text(
+                            text = "تم تقييمك عبر 5 جولات كروية متكاملة",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
         }
 
-        // -------------------------------------------------------------
-        // Presenter Commentary
-        // -------------------------------------------------------------
+        // Host closing comments
         item {
             PresenterCard(
                 speechText = uiState.hostSpeech,
-                hostMood = HostMood.CELEBRATING,
+                hostMood = uiState.hostMood,
                 isSpeaking = uiState.isTtsEnabled,
                 onSpeakClick = { viewModel.speakCurrentHostSpeech() }
             )
         }
 
         // -------------------------------------------------------------
-        // Round by Round Head-to-Head / Breakdown
+        // Round-by-Round Breakdown
         // -------------------------------------------------------------
         item {
-            Text(
-                text = if (isTwoPlayer) "مقارنة الجولات وجهاً لوجه ⚔️" else "تفاصيل الجولات الخمس 📊",
-                style = MaterialTheme.typography.titleMedium,
-                color = TrophyGoldBright,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        items(allRounds) { round ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("round_result_${round.roundNumber}"),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = SolidColor(MaterialTheme.colorScheme.outline)
-                )
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline,
+                        RoundedCornerShape(12.dp)
+                    ),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                if (isTwoPlayer) {
-                    val s1 = uiState.player1RoundScores[round] ?: 0
-                    val s2 = uiState.player2RoundScores[round] ?: 0
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = if (isTwoPlayer) "مقارنة الجولات وجهاً لوجه (Head to Head) ⚔️" else "تفاصيل أداء الجولات 📊",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${round.roundNumber}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TrophyGoldBright,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = round.titleAr,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    allRounds.forEach { round ->
+                        val rScoreP1 = uiState.player1RoundScores[round] ?: 0
+                        val rScoreP2 = uiState.player2RoundScores[round] ?: 0
+                        val soloRoundScore = uiState.roundScores[round] ?: 0
 
-                        // Head-to-Head scores
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // P1 score
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Player1Color.copy(alpha = 0.2f),
-                                border = CardDefaults.outlinedCardBorder().copy(brush = SolidColor(Player1Color))
-                            ) {
-                                Text(
-                                    text = "🔵 $s1",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Player1Color,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-
-                            Text(
-                                text = "ضد",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            // P2 score
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Player2Color.copy(alpha = 0.2f),
-                                border = CardDefaults.outlinedCardBorder().copy(brush = SolidColor(Player2Color))
-                            ) {
-                                Text(
-                                    text = "🔴 $s2",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Player2Color,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    val score = uiState.roundScores[round] ?: 0
-                    val maxScore = 10
-                    val isSuccess = score >= 5
-
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSuccess) PitchGreenDark else MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${round.roundNumber}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (isSuccess) PitchGreenBright else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = round.titleAr,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold
                             )
-                        }
 
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (score > 0) PitchGreenDark else MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Text(
-                                text = "$score / $maxScore نقاط",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (score > 0) PitchGreenBright else BuzzerRed,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
+                            if (isTwoPlayer) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Player1Color.copy(alpha = 0.15f),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Player1Color)
+                                    ) {
+                                        Text(
+                                            text = "🔵 $rScoreP1",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Player1Color,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Text(text = "ضد", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Player2Color.copy(alpha = 0.15f),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Player2Color)
+                                    ) {
+                                        Text(
+                                            text = "🔴 $rScoreP2",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Player2Color,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = PitchGreenDark.copy(alpha = 0.35f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.5f))
+                                ) {
+                                    Text(
+                                        text = "$soloRoundScore / 10 نقاط",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = PitchGreenBright,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        // -------------------------------------------------------------
-        // Toggle Answers Review
-        // -------------------------------------------------------------
+        // Toggle Answers Review Button
         item {
             OutlinedButton(
                 onClick = { showAnswersReview = !showAnswersReview },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("toggle_review_button"),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TrophyGoldBright)
+                    .height(46.dp)
+                    .testTag("toggle_answers_review_button"),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
-                Icon(
-                    imageVector = if (showAnswersReview) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (showAnswersReview) "إخفاء مراجعة الإجابات والمعلومات الكروية" else "مراجعة جميع الإجابات والمعلومات الكروية 📜",
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (showAnswersReview) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (showAnswersReview) "إخفاء مراجعة الإجابات والمعلومات الكروية" else "عرض مراجعة جميع الإجابات والمعلومات الكروية 📜",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
-        // -------------------------------------------------------------
-        // Answers Review List
-        // -------------------------------------------------------------
+        // Detailed Answers Review List
         if (showAnswersReview) {
             items(uiState.roundResults) { result ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline,
+                            RoundedCornerShape(10.dp)
+                        ),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
+                            val playerTag = if (isTwoPlayer) {
+                                if (result.playerNumber == 1) "اللاعب 1 🔵 • " else "اللاعب 2 🔴 • "
+                            } else ""
+
                             Text(
-                                text = result.round.titleAr,
+                                text = "$playerTag${result.round.titleAr}",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = TrophyGoldBright,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "+${result.scoreEarned} نقاط",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PitchGreenBright,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = PitchGreenDark.copy(alpha = 0.35f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.5f))
+                            ) {
+                                Text(
+                                    text = "+${result.scoreEarned} نقاط",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PitchGreenBright,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
                             text = "الإجابة الصحيحة: ${result.correctAnswer}",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -553,7 +534,7 @@ fun ResultsScreen(
                                 text = "معلومة: ${result.triviaNote}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
+                                lineHeight = 18.sp
                             )
                         }
                     }
@@ -562,33 +543,60 @@ fun ResultsScreen(
         }
 
         // -------------------------------------------------------------
-        // Action Buttons
+        // Action Buttons: Play Again, Replay, Share & Home
         // -------------------------------------------------------------
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Play another random match
                 Button(
-                    onClick = {
-                        viewModel.startRandomMatch(uiState.isTwoPlayerMode)
-                    },
+                    onClick = { viewModel.startRandomMatch(uiState.isTwoPlayerMode) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .height(50.dp)
                         .testTag("play_again_random_button"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreenDark),
-                    border = ButtonDefaults.outlinedButtonBorder().copy(
-                        brush = SolidColor(PitchGreenBright)
-                    )
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PitchGreen,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Shuffle, contentDescription = null, tint = PitchGreenBright)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isTwoPlayer) "بدء مواجهة ثنائية جديدة ⚔️" else "لعب حلقة عشوائية أخرى 🎲",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Shuffle, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isTwoPlayer) "بدء مواجهة ثنائية جديدة ⚔️" else "لعب حلقة عشوائية أخرى 🎲",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+
+                // Share Result Button
+                Button(
+                    onClick = { shareResult() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("share_result_button"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = TrophyGold,
+                        contentColor = Color.Black
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = Color.Black)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "مشاركة نتيجة المباراة 📢",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 // Replay same episode with fresh non-repeating variant
@@ -600,12 +608,22 @@ fun ResultsScreen(
                         .fillMaxWidth()
                         .height(48.dp)
                         .testTag("replay_button"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TrophyGoldBright)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "إعادة نفس الحلقة بأسئلة جديدة 🔁", fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "إعادة نفس الحلقة بأسئلة متجددة 🔁",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 // Go Home
@@ -615,14 +633,29 @@ fun ResultsScreen(
                         .fillMaxWidth()
                         .height(48.dp)
                         .testTag("return_home_button"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Icon(imageVector = Icons.Default.Home, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "العودة للقائمة الرئيسية 🏠", fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "العودة للقائمة الرئيسية 🏠",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
+        }
+
+        // Telegram Watermark Footer (t.me/Mos_mohh)
+        item {
+            ElegantBrandWatermark()
         }
     }
 }

@@ -7,44 +7,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = TrophyGold,
-    onPrimary = StadiumDark,
-    primaryContainer = TrophyGoldDark,
-    onPrimaryContainer = TrophyGoldBright,
-    secondary = PitchGreen,
-    onSecondary = Color.White,
-    secondaryContainer = PitchGreenDark,
-    onSecondaryContainer = PitchGreenBright,
+    primary = PitchGreen,
+    onPrimary = Color.White,
+    primaryContainer = PitchGreenDark,
+    onPrimaryContainer = PitchGreenBright,
+    secondary = TrophyGold,
+    onSecondary = Color.Black,
+    secondaryContainer = TrophyGoldDark,
+    onSecondaryContainer = TrophyGoldBright,
     tertiary = NeonCyan,
-    onTertiary = StadiumDark,
+    onTertiary = Color.White,
     background = StadiumDark,
-    onBackground = TextPrimary,
+    onBackground = TextPrimaryDark,
     surface = StadiumCard,
-    onSurface = TextPrimary,
+    onSurface = TextPrimaryDark,
     surfaceVariant = StadiumCardHover,
-    onSurfaceVariant = TextSecondary,
+    onSurfaceVariant = TextSecondaryDark,
     outline = StadiumBorder,
     error = BuzzerRed,
     onError = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = TrophyGoldDark,
+    primary = PitchGreen,
     onPrimary = Color.White,
-    primaryContainer = TrophyGoldBright,
-    onPrimaryContainer = ArenaLightTextPrimary,
-    secondary = PitchGreen,
-    onSecondary = Color.White,
-    secondaryContainer = PitchGreenBright.copy(alpha = 0.2f),
-    onSecondaryContainer = PitchGreenDark,
+    primaryContainer = EmeraldGreenSurface,
+    onPrimaryContainer = PitchGreenDark,
+    secondary = TrophyGold,
+    onSecondary = Color.Black,
+    secondaryContainer = TrophyGoldBright.copy(alpha = 0.2f),
+    onSecondaryContainer = TrophyGoldDark,
     tertiary = NeonCyan,
     onTertiary = Color.White,
     background = ArenaLightBg,
-    onBackground = ArenaLightTextPrimary,
+    onBackground = TextPrimaryLight,
     surface = ArenaLightCard,
-    onSurface = ArenaLightTextPrimary,
+    onSurface = TextPrimaryLight,
     surfaceVariant = ArenaLightCardHover,
-    onSurfaceVariant = ArenaLightTextSecondary,
+    onSurfaceVariant = TextSecondaryLight,
     outline = ArenaLightBorder,
     error = BuzzerRed,
     onError = Color.White
@@ -59,7 +59,7 @@ fun MyApplicationTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = AppTypography,
         content = content
     )
 }

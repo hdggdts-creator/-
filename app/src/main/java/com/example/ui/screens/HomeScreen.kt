@@ -1,8 +1,6 @@
 package com.example.ui.screens
 
 import android.content.Intent
-import android.net.Uri
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,16 +11,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.EpisodePack
 import com.example.data.repository.QuizDataProvider
+import com.example.ui.components.ElegantBrandWatermark
 import com.example.ui.theme.*
 
 @Composable
@@ -60,23 +56,16 @@ fun HomeScreen(
         } catch (_: Exception) {}
     }
 
-    fun openCreatorLink() {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Mos_mohh"))
-            context.startActivity(intent)
-        } catch (_: Exception) {}
-    }
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
             .testTag("home_screen"),
-        contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(top = 16.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Top Action Bar: Theme Switch & Share Button
+        // Top Action Bar: Header Logo, Theme Switch & Share Button
         item {
             Row(
                 modifier = Modifier
@@ -85,274 +74,293 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // App Title Small / Logo
+                // App Logo / Title
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.5.dp, TrophyGold, CircleShape),
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, PitchGreen, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = "⚽", fontSize = 18.sp)
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "تحدي الـ 30 كروي",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TrophyGoldBright,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = "تحدي الـ 30 كروي",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isDarkTheme) Color.White else ArenaLightTextPrimary,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "الموسوعة الكروية التنافسية",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                // Controls: Share & Theme Toggle
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Controls: Share & Theme Toggle (Flat icon buttons)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     // Share App Button
-                    IconButton(
-                        onClick = { shareApp() },
+                    Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            .testTag("share_app_button")
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                            .clickable { shareApp() }
+                            .testTag("share_app_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "مشاركة اللعبة",
-                            tint = TrophyGoldBright,
-                            modifier = Modifier.size(20.dp)
+                            tint = PitchGreen,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
                     // Dark / Light Theme Toggle Switch
-                    IconButton(
-                        onClick = onToggleTheme,
+                    Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            .testTag("theme_toggle_button")
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                            .clickable { onToggleTheme() }
+                            .testTag("theme_toggle_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
                             contentDescription = "تبديل المظهر",
-                            tint = if (isDarkTheme) TrophyGoldBright else NeonCyan,
-                            modifier = Modifier.size(20.dp)
+                            tint = TrophyGoldBright,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
         }
 
-        // Hero Banner
+        // Hero Banner (Flat Design)
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("hero_banner"),
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = Brush.linearGradient(
-                        listOf(TrophyGold, PitchGreenDark, NeonCyan)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(12.dp)
                     )
-                )
+                    .testTag("hero_banner"),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Box(
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    TrophyGoldDark.copy(alpha = if (isDarkTheme) 0.25f else 0.15f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                                )
-                            )
-                        )
-                        .padding(20.dp)
+                        .padding(18.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth()
+                    // Trophy Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.5.dp, TrophyGold, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(2.5.dp, TrophyGold, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = "🏆", fontSize = 32.sp)
-                        }
+                        Text(text = "🏆", fontSize = 28.sp)
+                    }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                        Text(
-                            text = "برنامج تحدي الـ 30",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = TrophyGoldBright,
-                            fontWeight = FontWeight.ExtraBold,
-                            textAlign = TextAlign.Center
-                        )
+                    Text(
+                        text = "برنامج تحدي الـ 30",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
+                    )
 
-                        Text(
-                            text = "اختبار العقول الكروية بنظام منع التكرار ومقدم حماسي",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "اختبر معلوماتك في 5 جولات كروية متنوعة مع رقعة تكتيكية حية",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
 
-                        // 5 Rounds quick chips
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            RoundMiniChip("1. من أنا؟", "💡")
-                            RoundMiniChip("2. مسيرة", "⏱️")
-                            RoundMiniChip("3. تشكيلة", "📋")
-                            RoundMiniChip("4. مزاد", "🔨")
-                            RoundMiniChip("5. سرعة", "⚡")
-                        }
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 5 Rounds Quick Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        RoundMiniChip("1. من أنا؟", "💡")
+                        RoundMiniChip("2. مسيرة", "⏱️")
+                        RoundMiniChip("3. تشكيلة", "📋")
+                        RoundMiniChip("4. مزاد", "🔨")
+                        RoundMiniChip("5. سرعة", "⚡")
                     }
                 }
             }
         }
 
-        // Action Buttons: Quick Random & Share & Rules
+        // Action Buttons: Quick Random & Rules
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Quick Random Match
+                // Quick Random Match (Flat Solid Green Button)
                 Button(
                     onClick = { onSelectRandom(isTwoPlayerMode) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp)
+                        .height(48.dp)
                         .testTag("quick_match_button"),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PitchGreenDark
+                        containerColor = PitchGreen,
+                        contentColor = Color.White
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder().copy(
-                        brush = Brush.horizontalGradient(listOf(PitchGreen, PitchGreenBright))
-                    )
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = PitchGreenBright,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "مباراة عشوائية",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "🎲", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "مباراة عشوائية",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
-                // Share Button (Quick Action)
-                FilledTonalButton(
-                    onClick = { shareApp() },
-                    modifier = Modifier
-                        .height(52.dp)
-                        .testTag("share_app_row_button"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "مشاركة",
-                        tint = TrophyGoldBright,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "مشاركة", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                }
-
-                // Rules button
+                // Rules button (Flat Outlined/Surface button)
                 OutlinedButton(
                     onClick = { showRulesDialog = true },
                     modifier = Modifier
-                        .height(52.dp)
+                        .height(48.dp)
                         .testTag("rules_button"),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TrophyGoldBright
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder().copy(
-                        brush = SolidColor(MaterialTheme.colorScheme.outline)
-                    )
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "القوانين", fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "📜", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "القوانين",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
 
-        // Single vs 1v1 Mode Toggle
+        // Single vs 1v1 Segmented Mode Switcher (Clean Flat Design)
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = SolidColor(MaterialTheme.colorScheme.outline)
-                )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline,
+                        RoundedCornerShape(10.dp)
+                    ),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(12.dp)
+                        .fillMaxWidth()
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = if (isTwoPlayerMode) "👥" else "👤", fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = if (isTwoPlayerMode) "وضع التحدي الثنائي (1 ضد 1)" else "وضع الفردي (ضد مقدم البرنامج)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (isTwoPlayerMode) "تنافس مع صديقك بالتبادل في كل جولة" else "اختبر معلوماتك لتقييمك من 50 نقطة",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
-                            )
+                    Text(
+                        text = "نمط التحدي:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Segmented Tabs Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Solo Mode Tab
+                        val isSolo = !isTwoPlayerMode
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (isSolo) PitchGreen else Color.Transparent
+                                )
+                                .clickable { isTwoPlayerMode = false }
+                                .testTag("mode_solo_tab"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "👤", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "فردي (ضد المذيع)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSolo) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = if (isSolo) FontWeight.ExtraBold else FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        // 1v1 Mode Tab
+                        val is1v1 = isTwoPlayerMode
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (is1v1) Player1Color else Color.Transparent
+                                )
+                                .clickable { isTwoPlayerMode = true }
+                                .testTag("mode_1v1_tab"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "⚔️", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "زوجي (1 ضد 1)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (is1v1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = if (is1v1) FontWeight.ExtraBold else FontWeight.Medium
+                                )
+                            }
                         }
                     }
-
-                    Switch(
-                        checked = isTwoPlayerMode,
-                        onCheckedChange = { isTwoPlayerMode = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = TrophyGoldBright,
-                            checkedTrackColor = TrophyGoldDark
-                        ),
-                        modifier = Modifier.testTag("mode_switch")
-                    )
                 }
             }
         }
@@ -368,30 +376,32 @@ fun HomeScreen(
                     Text(
                         text = "اختر الحلقة الكروية 📺",
                         style = MaterialTheme.typography.titleMedium,
-                        color = TrophyGoldBright,
-                        fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.ExtraBold
                     )
                     Text(
                         text = "10 نسخ متجددة ومحمية ضد التكرار في كل حلقة",
                         style = MaterialTheme.typography.labelSmall,
-                        color = PitchGreenBright
+                        color = PitchGreen
                     )
                 }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
-                        text = "${QuizDataProvider.episodePacks.size} حلقات • 50 تحدياً كروياً",
+                        text = "${QuizDataProvider.episodePacks.size} حلقات • 50 تحدياً",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
         }
 
-        // Episodes List
+        // Episodes List (Clean Flat Cards)
         items(QuizDataProvider.episodePacks) { pack ->
             EpisodePackCard(
                 pack = pack,
@@ -399,76 +409,13 @@ fun HomeScreen(
             )
         }
 
-        // Creator Credits Footer (Clickable -> t.me/Mos_mohh)
+        // Creator Credits Flat Watermark Footer (t.me/Mos_mohh)
         item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { openCreatorLink() }
-                    .testTag("footer_author_credits"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = Brush.horizontalGradient(
-                        listOf(TrophyGoldDark, MaterialTheme.colorScheme.outline, NeonCyan)
-                    )
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "👑", fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "حقوق صانع اللعبة | Made by",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Telegram: t.me/Mos_mohh",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TrophyGoldBright,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = "فتح الرابط",
-                            tint = TrophyGoldBright,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Text(
-                        text = "انقر هنا للتواصل ومتابعة أحدث التحديثات الكروية",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        fontSize = 10.sp
-                    )
-                }
-            }
+            ElegantBrandWatermark()
         }
     }
 
-    // Rules Dialog
+    // Rules Dialog (Clean Flat Design)
     if (showRulesDialog) {
         AlertDialog(
             onDismissRequest = { showRulesDialog = false },
@@ -478,28 +425,48 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "قوانين تحدي الـ 30 كروي",
-                        fontWeight = FontWeight.Bold,
-                        color = TrophyGoldBright
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("اللعبة مكونة من 5 جولات كروية نارية (التقييم من 50 نقطة):", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    Text("• الجولة 1: 'من أنا؟' (10 نقاط) - 4 تلميحات متدرجة. كل تلميح يكلف خصم في النقاط.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text(
+                        "اللعبة مكونة من 5 جولات كروية نارية (التقييم من 50 نقطة):",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text("• الجولة 1: 'من أنا؟' (10 نقاط) - 4 تلميحات تدريجية. كل تلميح يكلف خصم في النقاط.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Text("• الجولة 2: 'الرابط العجيب' (10 نقاط) - مسيرة لاعب عبر أنديته بالترتيب الزمني.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Text("• الجولة 3: 'التشكيلة الناقصة' (10 نقاط) - تشكيلة نهائي تاريخي مع لاعب مجهول على رقعة التكتيك.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Text("• الجولة 4: 'تحدي المزاد' (10 نقاط) - ذكر عدة أسماء تطابق الشرط (كل اسم صحيح بنقطتين).", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Text("• الجولة 5: 'أسئلة السرعة' (10 نقاط) - 5 معلومات سريعة للإجابة بـ صح أو خطأ.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("✨ ميزة منع التكرار: كل حلقة تحتوي على 10 مجموعات أسئلة مختلفة تماماً يتم اختيارها عشوائياً بدون تكرار حتى استهلاك كامل المجموعات!", color = PitchGreenBright, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PitchGreenDark.copy(alpha = 0.2f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = "✨ ميزة منع التكرار: كل حلقة تحتوي على 10 مجموعات أسئلة مختلفة تماماً يتم اختيارها عشوائياً بدون تكرار حتى استهلاك كامل المجموعات!",
+                            color = PitchGreenBright,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showRulesDialog = false }) {
-                    Text("فهمت، لنبدأ التحدي!", fontWeight = FontWeight.Bold, color = TrophyGoldBright)
+                Button(
+                    onClick = { showRulesDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreen)
+                ) {
+                    Text("فهمت، لنبدأ التحدي! ⚽", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             },
+            shape = RoundedCornerShape(12.dp),
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
@@ -509,10 +476,11 @@ fun HomeScreen(
 fun RoundMiniChip(title: String, emoji: String) {
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = emoji, fontSize = 11.sp)
@@ -520,8 +488,8 @@ fun RoundMiniChip(title: String, emoji: String) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 10.sp
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -535,13 +503,16 @@ fun EpisodePackCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outline,
+                RoundedCornerShape(12.dp)
+            )
             .clickable { onClick() }
             .testTag("episode_card_${pack.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = SolidColor(MaterialTheme.colorScheme.outline)
-        )
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
@@ -549,15 +520,16 @@ fun EpisodePackCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icon
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(46.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.5.dp, TrophyGold, CircleShape),
+                    .border(1.dp, TrophyGold, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = pack.iconEmoji, fontSize = 24.sp)
+                Text(text = pack.iconEmoji, fontSize = 22.sp)
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -565,9 +537,9 @@ fun EpisodePackCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = pack.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold
                 )
                 Text(
                     text = pack.subtitle,
@@ -576,41 +548,53 @@ fun EpisodePackCard(
                     fontSize = 12.sp,
                     maxLines = 1
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Text(
                             text = pack.era,
                             style = MaterialTheme.typography.labelSmall,
                             color = TrophyGoldBright,
                             fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = PitchGreenDark.copy(alpha = 0.25f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f))
                     ) {
                         Text(
-                            text = "${pack.variants.size} مجموعات متجددة",
+                            text = "${pack.variants.size} نسخ متجددة 🔄",
                             style = MaterialTheme.typography.labelSmall,
                             color = PitchGreenBright,
                             fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
             }
 
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = TrophyGoldBright,
-                modifier = Modifier.size(20.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "بدء الحلقة",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }
